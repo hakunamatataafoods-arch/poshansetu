@@ -1,0 +1,6 @@
+{
+  "name": "PoshanSetu - Anganwadi Worker Mobile App",
+  "description": "Official PoshanSetu (પોષણ સેતુ) Anganwadi Worker mobile application for daily meal usage, beneficiary stock distribution, attendance tracking, and pantry balance register.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

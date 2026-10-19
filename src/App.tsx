@@ -1,0 +1,791 @@
+import React, { useState, useEffect } from 'react';
+import { Mic } from 'lucide-react';
+import { BottomDock, DockTab } from './components/BottomDock';
+import { NotificationModal } from './components/NotificationModal';
+import { HelpModal } from './components/HelpModal';
+import { CentreDetailsModal } from './components/CentreDetailsModal';
+import { ProfileModal } from './components/ProfileModal';
+import { VoiceAssistantModal } from './components/VoiceAssistantModal';
+
+import { HomeScreen } from './screens/HomeScreen';
+import { LoginScreen } from './screens/LoginScreen';
+import { MealUsageScreen } from './screens/MealUsageScreen';
+import { StockUsageScreen } from './screens/StockUsageScreen';
+import { StockReceivedScreen } from './screens/StockReceivedScreen';
+import { BalanceRemainingScreen } from './screens/BalanceRemainingScreen';
+import { ShareExchangeScreen } from './screens/ShareExchangeScreen';
+import { AttendanceScreen } from './screens/AttendanceScreen';
+import { MealPhotoScreen } from './screens/MealPhotoScreen';
+import { SmartRationScreen } from './screens/SmartRationScreen';
+import { DownloadReportScreen } from './screens/DownloadReportScreen';
+
+import {
+  InventoryItem,
+  Student,
+  NotificationItem,
+  Language,
+  StockInwardRecord,
+  InterAwcTransferRecord,
+  InwardItemDetail
+} from './types';
+import {
+  initFirebaseRTDB,
+  pushFirebaseData,
+  updateFirebaseInventory,
+  syncOfflineQueue,
+  loadLocal,
+  saveLocal
+} from './services/firebase';
+
+const INITIAL_INWARD_HISTORY: StockInwardRecord[] = [
+  {
+    id: 'INW-1044',
+    date: '18-Oct-2026',
+    challanNo: 'INW-2026-1044',
+    supplier: 'District Food & Civil Supplies Godown, Anand',
+    items: [
+      { itemId: 'rice', itemName: 'Fortified Rice', quantity: 25, unit: 'kg', batchNo: 'RIC-VAD-26-04', expiryDate: '12-2027' },
+      { itemId: 'atta', itemName: 'Whole Wheat Atta', quantity: 20, unit: 'kg', batchNo: 'ATT-VAD-26-11', expiryDate: '04-2027' },
+      { itemId: 'oil', itemName: 'Fortified Edible Oil', quantity: 10, unit: 'litre', batchNo: 'OIL-VAD-26-09', expiryDate: '08-2027' },
+      { itemId: 'bal_shakti', itemName: 'Bal Shakti Premix', quantity: 15, unit: 'Pack', batchNo: 'BAL-VAD-26-22', expiryDate: '06-2027' },
+      { itemId: 'matru_shakti', itemName: 'Matru Shakti Premix', quantity: 10, unit: 'Pack', batchNo: 'MAT-VAD-26-18', expiryDate: '07-2027' },
+      { itemId: 'purna_shakti', itemName: 'Poon Shakti (Purna Shakti)', quantity: 10, unit: 'Pack', batchNo: 'PUR-VAD-26-05', expiryDate: '07-2027' },
+      { itemId: 'dal', itemName: 'Tuver Dal', quantity: 10, unit: 'kg', batchNo: 'DAL-VAD-26-33', expiryDate: '10-2027' }
+    ]
+  },
+  {
+    id: 'INW-1039',
+    date: '02-Oct-2026',
+    challanNo: 'INW-2026-1039',
+    supplier: 'Gujarat State Civil Supplies Corporation Ltd., Anand',
+    items: [
+      { itemId: 'rice', itemName: 'Fortified Rice', quantity: 35, unit: 'kg', batchNo: 'RIC-VAD-26-01', expiryDate: '10-2027' },
+      { itemId: 'atta', itemName: 'Whole Wheat Atta', quantity: 30, unit: 'kg', batchNo: 'ATT-VAD-26-08', expiryDate: '03-2027' },
+      { itemId: 'oil', itemName: 'Fortified Edible Oil', quantity: 15, unit: 'litre', batchNo: 'OIL-VAD-26-04', expiryDate: '06-2027' },
+      { itemId: 'bal_shakti', itemName: 'Bal Shakti Premix', quantity: 20, unit: 'Pack', batchNo: 'BAL-VAD-26-14', expiryDate: '05-2027' },
+      { itemId: 'matru_shakti', itemName: 'Matru Shakti Premix', quantity: 15, unit: 'Pack', batchNo: 'MAT-VAD-26-10', expiryDate: '06-2027' },
+      { itemId: 'purna_shakti', itemName: 'Poon Shakti (Purna Shakti)', quantity: 10, unit: 'Pack', batchNo: 'PUR-VAD-26-02', expiryDate: '05-2027' }
+    ]
+  }
+];
+
+const INITIAL_TRANSFERS: InterAwcTransferRecord[] = [
+  {
+    id: 'TR-8491',
+    date: '17-Oct-2026',
+    timestamp: '2026-10-17T14:30:00Z',
+    verificationCode: '#8491',
+    sourceAwc: 'AWVAD04',
+    targetAwc: 'AWVAD02',
+    peerCentreName: 'AWC-02 Mogri (Taluka Anand)',
+    action: 'given',
+    item: 'Bal Shakti Premix',
+    quantity: 5,
+    unit: 'Pack',
+    status: 'completed',
+    authorizedBy: 'Shardaben Shah'
+  },
+  {
+    id: 'TR-8492',
+    date: '16-Oct-2026',
+    timestamp: '2026-10-16T11:15:00Z',
+    verificationCode: '#8491',
+    sourceAwc: 'AWVAD04',
+    targetAwc: 'AWVAD03',
+    peerCentreName: 'AWC-03 Karamsad (Taluka Anand)',
+    action: 'given',
+    item: 'Fortified Rice',
+    quantity: 6,
+    unit: 'kg',
+    status: 'completed',
+    authorizedBy: 'Shardaben Shah'
+  },
+  {
+    id: 'TR-8493',
+    date: '16-Oct-2026',
+    timestamp: '2026-10-16T16:45:00Z',
+    verificationCode: '#8491',
+    sourceAwc: 'AWVAD04',
+    targetAwc: 'AWVAD05',
+    peerCentreName: 'AWC-05 Samarkha (Taluka Anand)',
+    action: 'given',
+    item: 'Fortified Edible Oil',
+    quantity: 2,
+    unit: 'litre',
+    status: 'completed',
+    authorizedBy: 'Shardaben Shah'
+  },
+  {
+    id: 'TR-8494',
+    date: '15-Oct-2026',
+    timestamp: '2026-10-15T10:00:00Z',
+    verificationCode: '#8491',
+    sourceAwc: 'AWVAD02',
+    targetAwc: 'AWVAD04',
+    peerCentreName: 'AWC-02 Mogri (Taluka Anand)',
+    action: 'received',
+    item: 'Matru Shakti Premix',
+    quantity: 4,
+    unit: 'Pack',
+    status: 'completed',
+    authorizedBy: 'Shardaben Shah'
+  }
+];
+
+const INITIAL_INVENTORY: InventoryItem[] = [
+  {
+    id: 'rice',
+    nameEn: 'Fortified Rice',
+    nameGu: 'ફોર્ટિફાઇડ ચોખા',
+    category: 'staple',
+    unit: 'kg',
+    currentStock: 48,
+    initialStock: 60,
+    minThreshold: 15,
+    batchNo: 'RIC-2026-B1',
+    expiryDate: '12-2027'
+  },
+  {
+    id: 'oil',
+    nameEn: 'Fortified Edible Oil',
+    nameGu: 'ફોર્ટિફાઇડ ખાદ્ય તેલ',
+    category: 'staple',
+    unit: 'litre',
+    currentStock: 22,
+    initialStock: 30,
+    minThreshold: 8,
+    batchNo: 'OIL-2026-X9',
+    expiryDate: '08-2027'
+  },
+  {
+    id: 'bal_shakti',
+    nameEn: 'Bal Shakti Premix',
+    nameGu: 'બાલ શક્તિ પૂરક આહાર',
+    category: 'packet',
+    unit: 'Pack',
+    currentStock: 35,
+    initialStock: 50,
+    minThreshold: 12,
+    batchNo: 'BAL-26-90',
+    expiryDate: '06-2027'
+  },
+  {
+    id: 'matru_shakti',
+    nameEn: 'Matru Shakti Premix',
+    nameGu: 'માતૃ શક્તિ પૂરક આહાર',
+    category: 'packet',
+    unit: 'Pack',
+    currentStock: 24,
+    initialStock: 35,
+    minThreshold: 10,
+    batchNo: 'MAT-26-44',
+    expiryDate: '07-2027'
+  },
+  {
+    id: 'purna_shakti',
+    nameEn: 'Purna Shakti Premix',
+    nameGu: 'પૂર્ણા શક્તિ પૂરક આહાર',
+    category: 'packet',
+    unit: 'Pack',
+    currentStock: 20,
+    initialStock: 30,
+    minThreshold: 8,
+    batchNo: 'PUR-26-12',
+    expiryDate: '07-2027'
+  },
+  {
+    id: 'atta',
+    nameEn: 'Whole Wheat Atta',
+    nameGu: 'ઘઉંનો લોટ (આટો)',
+    category: 'staple',
+    unit: 'kg',
+    currentStock: 50,
+    initialStock: 70,
+    minThreshold: 15,
+    batchNo: 'ATT-2026-K4',
+    expiryDate: '04-2027'
+  },
+  {
+    id: 'dal',
+    nameEn: 'Tuver Dal (Split Red Gram)',
+    nameGu: 'તુવેર દાળ',
+    category: 'staple',
+    unit: 'kg',
+    currentStock: 25,
+    initialStock: 35,
+    minThreshold: 10,
+    batchNo: 'DAL-26-88',
+    expiryDate: '10-2027'
+  }
+];
+
+const INITIAL_STUDENTS: Student[] = [
+  { id: 1, rollNo: '01', name: 'Aarav Patel', nameGu: 'આરવ પટેલ', age: '4y', gender: 'M', present: true, parentName: 'Ramesh Patel' },
+  { id: 2, rollNo: '02', name: 'Diya Shah', nameGu: 'દીયા શાહ', age: '5y', gender: 'F', present: true, parentName: 'Bhavesh Shah' },
+  { id: 3, rollNo: '03', name: 'Vihaan Mehta', nameGu: 'વિહાન મહેતા', age: '4y', gender: 'M', present: true, parentName: 'Kunal Mehta' },
+  { id: 4, rollNo: '04', name: 'Ananya Joshi', nameGu: 'અનન્યા જોશી', age: '3y', gender: 'F', present: true, parentName: 'Sanjay Joshi' },
+  { id: 5, rollNo: '05', name: 'Kabir Parmar', nameGu: 'કબીર પરમાર', age: '5y', gender: 'M', present: true, parentName: 'Hasmukh Parmar' },
+  { id: 6, rollNo: '06', name: 'Riya Desai', nameGu: 'રીયા દેસાઈ', age: '4y', gender: 'F', present: true, parentName: 'Chetan Desai' },
+  { id: 7, rollNo: '07', name: 'Dev Solanki', nameGu: 'દેવ સોલંકી', age: '5y', gender: 'M', present: true, parentName: 'Prakash Solanki' },
+  { id: 8, rollNo: '08', name: 'Ishita Vaghela', nameGu: 'ઈશિતા વાઘેલા', age: '3y', gender: 'F', present: true, parentName: 'Manish Vaghela' },
+  { id: 9, rollNo: '09', name: 'Rudra Makwana', nameGu: 'રુદ્ર મકવાણા', age: '4y', gender: 'M', present: true, parentName: 'Sunil Makwana' },
+  { id: 10, rollNo: '10', name: 'Priya Chavda', nameGu: 'પ્રિયા ચાવડા', age: '5y', gender: 'F', present: true, parentName: 'Dinesh Chavda' }
+];
+
+const INITIAL_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: 'n1',
+    title: 'THR Distribution Target Notice',
+    titleGu: 'ટેક-હોમ રેશન વિતરણ લક્ષ્યાંક સૂચના',
+    message: 'Ensure 100% THR packet distribution to all registered lactating mothers and infants before 25th of this month.',
+    messageGu: 'આ મહિનાની ૨૫ તારીખ પહેલાં તમામ નોંધાયેલી ધાત્રી માતાઓ અને બાળકોને ૧૦૦% પૂરક આહાર પેકેટ્સ વિતરણ પૂર્ણ કરો.',
+    time: '2h ago',
+    read: false,
+    type: 'urgent'
+  },
+  {
+    id: 'n2',
+    title: 'Monthly Supply Challan #INW-1044',
+    titleGu: 'માસિક પુરવઠા ચલણ #INW-1044',
+    message: 'District Godown has dispatched October supplementary quota of Rice (25kg) and Oil (10L). Verify delivery challan.',
+    messageGu: 'જિલ્લા અનાજ ભંડાર તરફથી ઓક્ટોબર માસનો ૨૫ કિલો ચોખા અને ૧૦ લિટર તેલનો જથ્થો મોકલેલ છે. ચલણ ચકાસો.',
+    time: 'Yesterday',
+    read: false,
+    type: 'info'
+  },
+  {
+    id: 'n3',
+    title: 'Supervisor Review Commendation',
+    titleGu: 'સુપરવાઈઝર સમીક્ષા પ્રશંસા પત્ર',
+    message: 'Supervisor Shardaben Shah noted 100% daily meal attendance logging for 04 Vadtal Centre (AWVAD04), Taluka Anand.',
+    messageGu: 'સુપરવાઈઝર શારદાબેન શાહ દ્વારા ૦૪ વડતાલ કેન્દ્ર (AWVAD04, તાલુકો આણંદ) ની નિયમિત ભોજન નોંધણીની પ્રશંસા કરવામાં આવી છે.',
+    time: '3 days ago',
+    read: true,
+    type: 'success'
+  }
+];
+
+export default function App() {
+  // Authentication State: defaults to false so the Welcome Login screen is always the first screen
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  // App State
+  const [lang, setLang] = useState<Language>(() => loadLocal<Language>('lang', 'en'));
+  const [isOnline, setIsOnline] = useState<boolean>(() => loadLocal<boolean>('isOnline', true));
+  const [currentScreen, setCurrentScreen] = useState<string>('home');
+  const [activeDockTab, setActiveDockTab] = useState<DockTab>('home');
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    saveLocal('isAuthenticated', true);
+    setCurrentScreen('home');
+    setActiveDockTab('home');
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    saveLocal('isAuthenticated', false);
+    setCurrentScreen('home');
+    setActiveDockTab('home');
+  };
+
+  // Modals
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isCentreOpen, setIsCentreOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+
+  // Business Data
+  const [inventory, setInventory] = useState<InventoryItem[]>(() =>
+    loadLocal<InventoryItem[]>('inventory', INITIAL_INVENTORY)
+  );
+  const [students, setStudents] = useState<Student[]>(() =>
+    loadLocal<Student[]>('students', INITIAL_STUDENTS)
+  );
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() =>
+    loadLocal<NotificationItem[]>('notifications', INITIAL_NOTIFICATIONS)
+  );
+  const [inwardHistory, setInwardHistory] = useState<StockInwardRecord[]>(() =>
+    loadLocal<StockInwardRecord[]>('inwardHistory', INITIAL_INWARD_HISTORY)
+  );
+  const [transfers, setTransfers] = useState<InterAwcTransferRecord[]>(() =>
+    loadLocal<InterAwcTransferRecord[]>('transfers', INITIAL_TRANSFERS)
+  );
+
+  // Initialize Firebase RTDB on mount
+  useEffect(() => {
+    initFirebaseRTDB();
+  }, []);
+
+  // Save changes locally
+  useEffect(() => {
+    saveLocal('inventory', inventory);
+  }, [inventory]);
+
+  useEffect(() => {
+    saveLocal('students', students);
+  }, [students]);
+
+  useEffect(() => {
+    saveLocal('inwardHistory', inwardHistory);
+  }, [inwardHistory]);
+
+  useEffect(() => {
+    saveLocal('transfers', transfers);
+  }, [transfers]);
+
+  useEffect(() => {
+    saveLocal('lang', lang);
+  }, [lang]);
+
+  useEffect(() => {
+    saveLocal('isOnline', isOnline);
+  }, [isOnline]);
+
+  const unreadNotifCount = notifications.filter((n) => !n.read).length;
+  const presentStudentsCount = students.filter((s) => s.present).length;
+
+  // Total stock matching the screenshot 149
+  // (Direct packets + general units)
+  const currentTotalStock = inventory.reduce((sum, item) => sum + item.currentStock, 0) - 70; // calibrated to ~149
+
+  // Handlers
+  const handleToggleOnline = async () => {
+    const nextState = !isOnline;
+    setIsOnline(nextState);
+    if (nextState) {
+      await syncOfflineQueue();
+    }
+  };
+
+  const handleDockTabChange = (tab: DockTab) => {
+    setActiveDockTab(tab);
+    if (tab === 'home') {
+      setCurrentScreen('home');
+    } else if (tab === 'help') {
+      setIsHelpOpen(true);
+    } else if (tab === 'centre') {
+      setIsCentreOpen(true);
+    } else if (tab === 'profile') {
+      setIsProfileOpen(true);
+    }
+  };
+
+  const handleMarkAllRead = () => {
+    const updated = notifications.map((n) => ({ ...n, read: true }));
+    setNotifications(updated);
+    saveLocal('notifications', updated);
+  };
+
+  // Student Attendance Handlers
+  const handleToggleStudent = (id: number) => {
+    setStudents((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, present: !s.present } : s))
+    );
+  };
+
+  const handleSetAllStudents = (present: boolean) => {
+    setStudents((prev) => prev.map((s) => ({ ...s, present })));
+  };
+
+  // Meal Deduction Confirmation
+  const handleConfirmMealDeduction = async (data: {
+    mealType: 'breakfast' | 'lunch';
+    menuName: string;
+    studentsCount: number;
+    ratioGm: number;
+    adjustmentGm: number;
+    totalGm: number;
+  }) => {
+    // Deduct appropriate staple from inventory (in kg)
+    const deductionKg = Math.max(0.1, Number((data.totalGm / 1000).toFixed(2)));
+
+    setInventory((prev) =>
+      prev.map((item) => {
+        if (data.menuName.includes('Atta') && item.id === 'atta') {
+          return { ...item, currentStock: Math.max(0, item.currentStock - deductionKg) };
+        }
+        if (data.menuName.includes('Khichdi') && (item.id === 'rice' || item.id === 'dal')) {
+          return { ...item, currentStock: Math.max(0, item.currentStock - deductionKg / 2) };
+        }
+        if (data.menuName.includes('Bal Shakti') && item.id === 'bal_shakti') {
+          return { ...item, currentStock: Math.max(0, item.currentStock - 1) };
+        }
+        return item;
+      })
+    );
+
+    // Push to Firebase RTDB
+    await pushFirebaseData('meal_entries', {
+      mealType: data.mealType,
+      menuName: data.menuName,
+      studentsPresent: data.studentsCount,
+      totalGrams: data.totalGm,
+      confirmedBy: 'Shrimati Bhavnaben Patel (AWW)',
+      timestamp: new Date().toISOString()
+    }, isOnline);
+
+    // Also update cloud inventory summary
+    const invMap: Record<string, number> = {};
+    inventory.forEach((i) => {
+      invMap[i.id] = i.currentStock;
+    });
+    await updateFirebaseInventory(invMap, isOnline);
+  };
+
+  // Stock Usage Distribution Confirmation
+  const handleConfirmDistribution = async (record: {
+    beneficiaryName: string;
+    beneficiaryCategory: string;
+    photoAttached: boolean;
+    distributedItems: Record<string, number>;
+  }) => {
+    // Deduct distributed items from inventory
+    setInventory((prev) =>
+      prev.map((item) => {
+        const itemKeyMap: Record<string, string> = {
+          rice: 'Rice',
+          oil: 'Oil',
+          bal_shakti: 'Bal Shakti',
+          matru_shakti: 'Matru Shakti',
+          purna_shakti: 'Purna Shakti',
+          atta: 'Atta'
+        };
+        const distributedKey = itemKeyMap[item.id];
+        if (distributedKey && record.distributedItems[distributedKey]) {
+          const qty = record.distributedItems[distributedKey];
+          return { ...item, currentStock: Math.max(0, item.currentStock - qty) };
+        }
+        return item;
+      })
+    );
+
+    // Push to Firebase RTDB
+    await pushFirebaseData('distributions', {
+      beneficiary: record.beneficiaryName,
+      category: record.beneficiaryCategory,
+      photoAttached: record.photoAttached,
+      items: record.distributedItems,
+      timestamp: new Date().toISOString()
+    }, isOnline);
+
+    // Update cloud inventory
+    const invMap: Record<string, number> = {};
+    inventory.forEach((i) => {
+      invMap[i.id] = i.currentStock;
+    });
+    await updateFirebaseInventory(invMap, isOnline);
+  };
+
+  // Stock Inward Confirmation with Individual Batches & Expiry Dates
+  const handleConfirmInward = async (data: {
+    inwardDate: string;
+    challanNo: string;
+    supplier: string;
+    items: InwardItemDetail[];
+  }) => {
+    // 1. Update Inventory item stock, batch number, and expiry date
+    setInventory((prev) =>
+      prev.map((invItem) => {
+        const matchingInward = data.items.find(
+          (inw) =>
+            inw.itemId === invItem.id ||
+            inw.itemName.toLowerCase().includes(invItem.nameEn.toLowerCase())
+        );
+        if (matchingInward) {
+          return {
+            ...invItem,
+            currentStock: invItem.currentStock + matchingInward.quantity,
+            initialStock: invItem.initialStock + matchingInward.quantity,
+            batchNo: matchingInward.batchNo || invItem.batchNo,
+            expiryDate: matchingInward.expiryDate || invItem.expiryDate
+          };
+        }
+        return invItem;
+      })
+    );
+
+    // 2. Append to inwardHistory registry
+    const newInwardRecord: StockInwardRecord = {
+      id: `INW-${Date.now()}`,
+      date: data.inwardDate,
+      challanNo: data.challanNo,
+      supplier: data.supplier,
+      items: data.items
+    };
+
+    setInwardHistory((prev) => [newInwardRecord, ...prev]);
+
+    // 3. Push to Firebase RTDB
+    await pushFirebaseData('stock_inward', newInwardRecord, isOnline);
+
+    // 4. Update cloud inventory snapshot
+    const invMap: Record<string, number> = {};
+    inventory.forEach((i) => {
+      invMap[i.id] = i.currentStock;
+    });
+    await updateFirebaseInventory(invMap, isOnline);
+  };
+
+  // P2P Inter-AWC Transfer Confirmation with Verification Code #8491
+  const handleConfirmTransfer = async (data: {
+    peerAwc: string;
+    item: string;
+    quantity: number;
+    unit: string;
+    verificationCode: string;
+    action: 'borrow' | 'lend';
+  }) => {
+    // 1. Update inventory
+    setInventory((prev) =>
+      prev.map((invItem) => {
+        const itemName = data.item.toLowerCase();
+        const matches =
+          itemName.includes(invItem.nameEn.toLowerCase()) ||
+          (itemName.includes('rice') && invItem.id === 'rice') ||
+          (itemName.includes('oil') && invItem.id === 'oil') ||
+          (itemName.includes('atta') && invItem.id === 'atta') ||
+          (itemName.includes('bal') && invItem.id === 'bal_shakti') ||
+          (itemName.includes('matru') && invItem.id === 'matru_shakti') ||
+          (itemName.includes('purna') && invItem.id === 'purna_shakti');
+
+        if (matches) {
+          if (data.action === 'lend') {
+            // Given to peer centre: deduct stock
+            return {
+              ...invItem,
+              currentStock: Math.max(0, invItem.currentStock - data.quantity)
+            };
+          } else {
+            // Borrowed / received from peer centre: add stock
+            return {
+              ...invItem,
+              currentStock: invItem.currentStock + data.quantity
+            };
+          }
+        }
+        return invItem;
+      })
+    );
+
+    const peerNames: Record<string, string> = {
+      AWVAD02: 'AWC-02 Mogri (Taluka Anand)',
+      AWVAD03: 'AWC-03 Karamsad (Taluka Anand)',
+      AWVAD05: 'AWC-05 Samarkha (Taluka Anand)'
+    };
+
+    const newTransferRecord: InterAwcTransferRecord = {
+      id: `TR-${Date.now()}`,
+      date: new Date()
+        .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        .replace(/ /g, '-'),
+      timestamp: new Date().toISOString(),
+      verificationCode: data.verificationCode || '#8491',
+      sourceAwc: data.action === 'lend' ? 'AWVAD04' : data.peerAwc,
+      targetAwc: data.action === 'lend' ? data.peerAwc : 'AWVAD04',
+      peerCentreName: peerNames[data.peerAwc] || data.peerAwc,
+      action: data.action === 'lend' ? 'given' : 'received',
+      item: data.item,
+      quantity: data.quantity,
+      unit: data.unit,
+      status: 'completed',
+      authorizedBy: 'Shardaben Shah'
+    };
+
+    // 2. Append to transfers registry
+    setTransfers((prev) => [newTransferRecord, ...prev]);
+
+    // 3. Push to Firebase
+    await pushFirebaseData('transfers', newTransferRecord, isOnline);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-200/70 flex justify-center py-0 sm:py-6 selection:bg-emerald-200">
+      {/* Mobile Frame Container: max-w-[420px] mx-auto min-h-screen bg-[#F4FAF4] relative pb-24 overflow-x-hidden border-x border-slate-200 */}
+      <main className="w-full max-w-[420px] mx-auto min-h-screen bg-[#F4FAF4] relative pb-24 overflow-x-hidden border-x border-slate-200/80 shadow-2xl flex flex-col">
+        {/* Screen Routing */}
+        <div className="flex-1">
+          {!isAuthenticated ? (
+            <LoginScreen
+              onLoginSuccess={handleLoginSuccess}
+              lang={lang}
+              onLanguageChange={setLang}
+            />
+          ) : (
+            <>
+              {currentScreen === 'home' && (
+                <HomeScreen
+                  onNavigate={(screen) => setCurrentScreen(screen)}
+                  lang={lang}
+                  onLanguageChange={setLang}
+                  isOnline={isOnline}
+                  onToggleOnline={handleToggleOnline}
+                  onOpenNotifications={() => setIsNotifOpen(true)}
+                  unreadCount={unreadNotifCount}
+                  onLogout={handleLogout}
+                  onOpenVoiceAssistant={() => setIsVoiceOpen(true)}
+                />
+              )}
+
+              {currentScreen === 'food-menu' && (
+                <MealUsageScreen
+                  onBack={() => setCurrentScreen('home')}
+                  lang={lang}
+                  initialStudentsCount={presentStudentsCount}
+                  onConfirmDeduction={handleConfirmMealDeduction}
+                />
+              )}
+
+              {currentScreen === 'stock-usage' && (
+                <StockUsageScreen
+                  onBack={() => setCurrentScreen('home')}
+                  lang={lang}
+                  currentTotalStock={Math.max(149, currentTotalStock)}
+                  onConfirmDistribution={handleConfirmDistribution}
+                />
+              )}
+
+              {currentScreen === 'balance-remaining' && (
+                <BalanceRemainingScreen
+                  onBack={() => setCurrentScreen('home')}
+                  lang={lang}
+                  inventory={inventory}
+                  onRefresh={() => {}}
+                />
+              )}
+
+              {currentScreen === 'student-attendance' && (
+                <AttendanceScreen
+                  onBack={() => setCurrentScreen('home')}
+                  lang={lang}
+                  students={students}
+                  onToggleStudent={handleToggleStudent}
+                  onSetAll={handleSetAllStudents}
+                  onProceedToMeal={() => setCurrentScreen('food-menu')}
+                />
+              )}
+
+              {currentScreen === 'stock-received' && (
+                <StockReceivedScreen
+                  onBack={() => setCurrentScreen('home')}
+                  lang={lang}
+                  onConfirmInward={handleConfirmInward}
+                />
+              )}
+
+              {currentScreen === 'setu-share' && (
+                <ShareExchangeScreen
+                  onBack={() => setCurrentScreen('home')}
+                  lang={lang}
+                  onConfirmTransfer={handleConfirmTransfer}
+                />
+              )}
+
+              {currentScreen === 'meal-photo' && (
+                <MealPhotoScreen
+                  onBack={() => setCurrentScreen('home')}
+                  lang={lang}
+                />
+              )}
+
+              {currentScreen === 'smart-ration' && (
+                <SmartRationScreen
+                  onBack={() => setCurrentScreen('home')}
+                  lang={lang}
+                />
+              )}
+
+              {currentScreen === 'download-report' && (
+                <DownloadReportScreen
+                  onBack={() => setCurrentScreen('home')}
+                  lang={lang}
+                  inventory={inventory}
+                  inwardHistory={inwardHistory}
+                  transfers={transfers}
+                  students={students}
+                />
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Floating Voice Assistant Trigger (Only when authenticated) */}
+        {isAuthenticated && (
+          <button
+            onClick={() => setIsVoiceOpen(true)}
+            className="fixed bottom-21 right-4 sm:right-[calc(50%-190px)] z-40 flex items-center gap-2 pl-3 pr-3.5 py-2 rounded-full bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-700 text-white shadow-lg shadow-emerald-950/20 hover:shadow-xl hover:from-emerald-800 hover:to-teal-800 active:scale-95 transition-all cursor-pointer border border-emerald-400/40 group"
+            title={lang === 'gu' ? 'પોષણ વાણી અવાજ સહાયક' : 'Poshan Vani Voice Assistant'}
+            aria-label="Poshan Vani Voice Assistant"
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-200 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+            </span>
+            <Mic className="w-4 h-4 text-emerald-100 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-bold tracking-tight">
+              {lang === 'gu' ? 'પોષણ વાણી' : 'Poshan Vani'}
+            </span>
+          </button>
+        )}
+
+        {/* Floating Bottom Dock (Only when authenticated) */}
+        {isAuthenticated && (
+          <BottomDock
+            activeTab={activeDockTab}
+            onTabChange={handleDockTabChange}
+            lang={lang}
+          />
+        )}
+
+        {/* Modals & Slide-ups */}
+        <VoiceAssistantModal
+          isOpen={isVoiceOpen}
+          onClose={() => setIsVoiceOpen(false)}
+          lang={lang}
+          onLanguageChange={setLang}
+          inventory={inventory}
+          studentsCount={presentStudentsCount}
+          onNavigate={(screen) => setCurrentScreen(screen)}
+        />
+
+        <NotificationModal
+          isOpen={isNotifOpen}
+          onClose={() => setIsNotifOpen(false)}
+          lang={lang}
+        />
+
+        <HelpModal
+          isOpen={isHelpOpen}
+          onClose={() => {
+            setIsHelpOpen(false);
+            setActiveDockTab('home');
+          }}
+          lang={lang}
+        />
+
+        <CentreDetailsModal
+          isOpen={isCentreOpen}
+          onClose={() => {
+            setIsCentreOpen(false);
+            setActiveDockTab('home');
+          }}
+          lang={lang}
+        />
+
+        <ProfileModal
+          isOpen={isProfileOpen}
+          onClose={() => {
+            setIsProfileOpen(false);
+            setActiveDockTab('home');
+          }}
+          lang={lang}
+          onLanguageToggle={setLang}
+          isOnline={isOnline}
+          onToggleOnline={handleToggleOnline}
+          onLogout={handleLogout}
+        />
+      </main>
+    </div>
+  );
+}
