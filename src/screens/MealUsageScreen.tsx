@@ -284,6 +284,29 @@ export const MealUsageScreen: React.FC<MealUsageScreenProps> = ({
       return;
     }
 
+    // Check against inventory if materials are out of stock or exceed stock
+    for (const mat of calculatedMaterials) {
+      const invItem = inventory.find((i) => i.id === mat.id);
+      if (invItem) {
+        if (invItem.currentStock <= 0) {
+          alert(
+            lang === 'gu'
+              ? `સ્ટોક ખાલી ચેતવણી: ${mat.nameGu} નો સ્ટોક ખાલી (૦ ${invItem.unit}) છે! વિતરણ કરી શકાતું નથી.`
+              : `Stock Out Alert: ${mat.nameEn} is out of stock (0 ${invItem.unit})! Cannot prepare this meal.`
+          );
+          return;
+        }
+        if (mat.totalKg > invItem.currentStock) {
+          alert(
+            lang === 'gu'
+              ? `સ્ટોક મર્યાદા ચેતવણી: ${mat.nameGu} માટે જરૂરી જથ્થો (${mat.totalKg} kg) કેન્દ્રમાં ઉપલબ્ધ સ્ટોક (${invItem.currentStock} kg) કરતાં વધારે છે!`
+              : `Stock Limit Alert: Required quantity (${mat.totalKg} kg) for ${mat.nameEn} exceeds available stock (${invItem.currentStock} kg)!`
+          );
+          return;
+        }
+      }
+    }
+
     setSubmitting(true);
     const currentRecipe = RECIPE_PRESETS.find((r) => r.id === selectedRecipeId);
     const menuLabel = currentRecipe
@@ -621,9 +644,34 @@ export const MealUsageScreen: React.FC<MealUsageScreenProps> = ({
                         <div className="w-6 h-6 rounded-lg bg-emerald-100/80 text-emerald-800 flex items-center justify-center shrink-0">
                           <Package className="w-3.5 h-3.5" />
                         </div>
-                        <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">
-                          {lang === 'gu' ? mat.nameGu : mat.nameEn}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                            {lang === 'gu' ? mat.nameGu : mat.nameEn}
+                          </span>
+                          {(() => {
+                            const invItem = inventory.find((i) => i.id === mat.id);
+                            if (!invItem) return null;
+                            if (invItem.currentStock <= 0) {
+                              return (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-100 text-rose-700">
+                                  {lang === 'gu' ? 'સ્ટોક ખાલી' : 'Out of Stock'}
+                                </span>
+                              );
+                            }
+                            if (Number(itemTotalKg) > invItem.currentStock) {
+                              return (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-100 text-amber-800">
+                                  {lang === 'gu' ? `સ્ટોક ઓછો (${invItem.currentStock}kg)` : `Exceeds Stock (${invItem.currentStock}kg)`}
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="text-[10px] text-slate-500 font-semibold">
+                                ({lang === 'gu' ? 'સ્ટોક:' : 'Stock:'} {invItem.currentStock} {invItem.unit})
+                              </span>
+                            );
+                          })()}
+                        </div>
                       </div>
 
                       {materials.length > 1 && (

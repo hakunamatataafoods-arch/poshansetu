@@ -652,6 +652,7 @@ export default function App() {
                   onBack={() => setCurrentScreen('home')}
                   lang={lang}
                   initialStudentsCount={presentStudentsCount}
+                  inventory={inventory}
                   onConfirmDeduction={handleConfirmMealDeduction}
                 />
               )}
@@ -661,6 +662,7 @@ export default function App() {
                   onBack={() => setCurrentScreen('home')}
                   lang={lang}
                   currentTotalStock={Math.max(149, currentTotalStock)}
+                  inventory={inventory}
                   onConfirmDistribution={handleConfirmDistribution}
                 />
               )}

@@ -1,13 +1,30 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Package, Camera, CheckCircle2, ChevronDown, Plus, Minus, Home, ShieldCheck, UserCheck } from 'lucide-react';
+import {
+  ArrowLeft,
+  Package,
+  Camera,
+  CheckCircle2,
+  ChevronDown,
+  Plus,
+  Minus,
+  Home,
+  ShieldCheck,
+  UserCheck,
+  AlertTriangle,
+  AlertCircle,
+  X,
+  PackageX,
+  Info
+} from 'lucide-react';
 import { PoshanSetuLogo } from '../components/PoshanSetuLogo';
-import { Language } from '../types';
+import { Language, InventoryItem } from '../types';
 import { translations } from '../data/translations';
 
 interface StockUsageScreenProps {
   onBack: () => void;
   lang: Language;
   currentTotalStock: number;
+  inventory?: InventoryItem[];
   onConfirmDistribution: (record: {
     beneficiaryName: string;
     beneficiaryCategory: string;
@@ -16,10 +33,22 @@ interface StockUsageScreenProps {
   }) => Promise<void>;
 }
 
+interface AlertNotificationState {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  itemName: string;
+  unit: string;
+  availableStock: number;
+  requestedStock?: number;
+  type: 'out_of_stock' | 'limit_exceeded' | 'validation_error';
+}
+
 export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
   onBack,
   lang,
   currentTotalStock,
+  inventory = [],
   onConfirmDistribution
 }) => {
   const t = translations[lang];
@@ -44,31 +73,43 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
     remaining: number;
   } | null>(null);
 
-  // Stepper values for the 6 items shown in poshan_setu_stock_usage_entry_2.jpg
-  const [quantities, setQuantities] = useState<Record<string, number>>({
-    Rice: 1,
-    Oil: 1,
-    'Bal Shakti': 1,
-    'Matru Shakti': 1,
-    'Purna Shakti': 1,
-    Atta: 1
-  });
+  // Pop notification modal state for stock out or exceeding available stock
+  const [alertNotification, setAlertNotification] = useState<AlertNotificationState | null>(null);
+
+  // Fallback defaults if inventory is empty
+  const defaultInventoryMap: Record<string, number> = {
+    rice: 40,
+    oil: 12,
+    bal_shakti: 18,
+    matru_shakti: 24,
+    purna_shakti: 6,
+    atta: 50
+  };
+
+  const getItemStock = (invId: string): number => {
+    const found = inventory.find((i) => i.id === invId);
+    if (found) return found.currentStock;
+    return defaultInventoryMap[invId] ?? 0;
+  };
 
   const itemsConfig = [
-    { key: 'Rice', label: t.rice, unit: t.kg },
-    { key: 'Oil', label: t.oil, unit: t.litre },
-    { key: 'Bal Shakti', label: t.balShakti, unit: t.pack },
-    { key: 'Matru Shakti', label: t.matruShakti, unit: t.pack },
-    { key: 'Purna Shakti', label: t.purnaShakti, unit: t.pack },
-    { key: 'Atta', label: t.atta, unit: t.kg }
+    { key: 'Rice', invId: 'rice', label: t.rice, unit: t.kg },
+    { key: 'Oil', invId: 'oil', label: t.oil, unit: t.litre },
+    { key: 'Bal Shakti', invId: 'bal_shakti', label: t.balShakti, unit: t.pack },
+    { key: 'Matru Shakti', invId: 'matru_shakti', label: t.matruShakti, unit: t.pack },
+    { key: 'Purna Shakti', invId: 'purna_shakti', label: t.purnaShakti, unit: t.pack },
+    { key: 'Atta', invId: 'atta', label: t.atta, unit: t.kg }
   ];
 
-  const handleQtyChange = (key: string, delta: number) => {
-    setQuantities((prev) => ({
-      ...prev,
-      [key]: Math.max(0, (prev[key] || 0) + delta)
-    }));
-  };
+  // Initialize quantities: if stock is 0, start at 0, otherwise start at 1 (or max available)
+  const [quantities, setQuantities] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {};
+    itemsConfig.forEach((item) => {
+      const stock = getItemStock(item.invId);
+      initial[item.key] = stock > 0 ? Math.min(1, stock) : 0;
+    });
+    return initial;
+  });
 
   const formatRemainingBalance = (num: number): string => {
     if (num === null || num === undefined || isNaN(num)) return '0';
@@ -76,13 +117,141 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
     return num.toFixed(3);
   };
 
+  // Quantity Change Handler with Live Stock Availability Checks & Pop Notification
+  const handleQtyChange = (key: string, delta: number) => {
+    const itemConf = itemsConfig.find((c) => c.key === key);
+    if (!itemConf) return;
+
+    const availableStock = getItemStock(itemConf.invId);
+    const currentQty = quantities[key] || 0;
+
+    // Decreasing
+    if (delta < 0) {
+      setQuantities((prev) => ({
+        ...prev,
+        [key]: Math.max(0, currentQty + delta)
+      }));
+      return;
+    }
+
+    // Increasing: Check if stock is completely 0 (Out of stock)
+    if (availableStock <= 0) {
+      setAlertNotification({
+        isOpen: true,
+        type: 'out_of_stock',
+        itemName: itemConf.label,
+        unit: itemConf.unit,
+        availableStock: 0,
+        requestedStock: 1,
+        title: lang === 'gu' ? 'સ્ટોક ખાલી છે (Item Out of Stock)!' : 'Item Out of Stock!',
+        message:
+          lang === 'gu'
+            ? `${itemConf.label} નો સ્ટોક આંગણવાડી કેન્દ્રમાં સંપૂર્ણપણે ખાલી (૦ ${itemConf.unit}) છે! જ્યાં સુધી નવો જથ્થો પ્રાપ્ત ન થાય ત્યાં સુધી આ સામગ્રીનું વિતરણ થઈ શકશે નહીં.`
+            : `${itemConf.label} is currently completely OUT OF STOCK (0 ${itemConf.unit} available) at AWC 04 Vadtal. You cannot distribute this item until new stock is received.`
+      });
+      return;
+    }
+
+    // Increasing: Check if selecting beyond available stock
+    const nextQty = currentQty + delta;
+    if (nextQty > availableStock) {
+      setAlertNotification({
+        isOpen: true,
+        type: 'limit_exceeded',
+        itemName: itemConf.label,
+        unit: itemConf.unit,
+        availableStock,
+        requestedStock: nextQty,
+        title: lang === 'gu' ? 'સ્ટોક મર્યાદા ઓળંગાઈ ગઈ (Stock Limit Reached)!' : 'Stock Limit Exceeded!',
+        message:
+          lang === 'gu'
+            ? `${itemConf.label} નો કેન્દ્રમાં માત્ર ${formatRemainingBalance(availableStock)} ${itemConf.unit} સ્ટોક ઉપલબ્ધ છે. ઉપલબ્ધ જથ્થા કરતાં વધુ (${nextQty} ${itemConf.unit}) પસંદ કરી શકાતો નથી.`
+            : `Only ${formatRemainingBalance(availableStock)} ${itemConf.unit} of ${itemConf.label} is available in stock. You cannot select beyond the available stock limit.`
+      });
+      return;
+    }
+
+    // Normal increment within available stock
+    setQuantities((prev) => ({
+      ...prev,
+      [key]: nextQty
+    }));
+  };
+
   const totalDeductedUnits = Object.values(quantities).reduce((a, b) => a + b, 0);
   const remainingStock = Math.max(0, currentTotalStock - totalDeductedUnits);
 
   const handleConfirm = async () => {
     if (!selectedBeneficiary) {
-      alert(lang === 'en' ? 'Please select a beneficiary first.' : 'કૃપા કરીને પહેલા લાભાર્થી પસંદ કરો.');
+      setAlertNotification({
+        isOpen: true,
+        type: 'validation_error',
+        itemName: '',
+        unit: '',
+        availableStock: 0,
+        title: lang === 'gu' ? 'લાભાર્થી પસંદ કરો' : 'Beneficiary Required',
+        message:
+          lang === 'gu'
+            ? 'કૃપા કરીને વિતરણ નોંધતા પહેલા લાભાર્થીનું નામ પસંદ કરો.'
+            : 'Please select a beneficiary name before confirming distribution.'
+      });
       return;
+    }
+
+    if (totalDeductedUnits <= 0) {
+      setAlertNotification({
+        isOpen: true,
+        type: 'validation_error',
+        itemName: '',
+        unit: '',
+        availableStock: 0,
+        title: lang === 'gu' ? 'સામગ્રી જથ્થો પસંદ કરો' : 'No Items Selected',
+        message:
+          lang === 'gu'
+            ? 'કૃપા કરીને વિતરણ માટે ઓછામાં ઓછી એક સામગ્રીનો જથ્થો પસંદ કરો.'
+            : 'Please select a quantity greater than zero for at least one item to distribute.'
+      });
+      return;
+    }
+
+    // Strict validation against available stock
+    for (const item of itemsConfig) {
+      const selected = quantities[item.key] || 0;
+      const stock = getItemStock(item.invId);
+
+      if (selected > 0 && stock <= 0) {
+        setAlertNotification({
+          isOpen: true,
+          type: 'out_of_stock',
+          itemName: item.label,
+          unit: item.unit,
+          availableStock: 0,
+          requestedStock: selected,
+          title: lang === 'gu' ? 'સ્ટોક ખાલી છે!' : 'Item Out of Stock!',
+          message:
+            lang === 'gu'
+              ? `${item.label} નો સ્ટોક ખાલી હોવાથી વિતરણ કરી શકાતું નથી. કૃપા કરીને જથ્થો ૦ કરો.`
+              : `${item.label} is completely out of stock. Please remove this item (set to 0) to proceed.`
+        });
+        return;
+      }
+
+      if (selected > stock) {
+        setAlertNotification({
+          isOpen: true,
+          type: 'limit_exceeded',
+          itemName: item.label,
+          unit: item.unit,
+          availableStock: stock,
+          requestedStock: selected,
+          title: lang === 'gu' ? 'સ્ટોક મર્યાદા બહાર!' : 'Stock Limit Exceeded!',
+          message:
+            lang === 'gu'
+              ? `${item.label} માટે પસંદ કરેલ જથ્થો (${selected} ${item.unit}) ઉપલબ્ધ સ્ટોક (${formatRemainingBalance(stock)} ${item.unit}) કરતાં વધારે છે!`
+              : `Selected quantity (${selected} ${item.unit}) for ${item.label} exceeds available stock (${formatRemainingBalance(stock)} ${item.unit})!`
+        });
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -146,7 +315,7 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
         </p>
       </div>
 
-      {/* Distribution Success Card with Return to Home Page (Matching Stock Received design) */}
+      {/* Distribution Success Card with Return to Home Page */}
       {success && lastDistributedSummary ? (
         <div className="bg-white rounded-[26px] p-6 border border-emerald-200 text-center space-y-4 animate-in zoom-in-95 shadow-sm">
           <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto shadow-2xs">
@@ -195,7 +364,7 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
                         key={name}
                         className="px-2.5 py-1 bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-lg text-xs font-bold"
                       >
-                        {label}: {qty} {unit}
+                        {label}: {formatRemainingBalance(qty)} {unit}
                       </span>
                     );
                   })}
@@ -243,13 +412,18 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
         /* Main Entry Card */
         <div className="bg-white rounded-[26px] p-4.5 border border-slate-200/80 shadow-xs space-y-4">
           {/* Header: Item Distributed Entry */}
-          <div className="flex items-center gap-2.5 pb-1">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-              <Package className="w-5 h-5 stroke-[2.2]" />
+          <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                <Package className="w-5 h-5 stroke-[2.2]" />
+              </div>
+              <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                {t.itemDistributedEntry}
+              </h2>
             </div>
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-              {t.itemDistributedEntry}
-            </h2>
+            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/70">
+              AWC 04 Vadtal
+            </span>
           </div>
 
           {/* Beneficiary Name Row */}
@@ -301,45 +475,124 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
             </button>
           </div>
 
-          {/* Items Distributed List Subheader */}
-          <div className="pt-2 border-t border-slate-100">
+          {/* Items Distributed List Subheader & Live Stock Status Info */}
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">
               {t.itemsDistributedList}
             </h3>
+            <span className="text-[10px] font-medium text-slate-500">
+              {lang === 'gu' ? 'ઉપલબ્ધ સ્ટોક ચકાસણી સક્રિય' : 'Live Stock Guard Active'}
+            </span>
           </div>
 
-          {/* The 6 Items with Steppers */}
-          <div className="space-y-2.5">
+          {/* The 6 Items with Steppers and Live Available Stock & Stock Limit Guards */}
+          <div className="space-y-3">
             {itemsConfig.map((item) => {
               const qty = quantities[item.key] || 0;
+              const availableStock = getItemStock(item.invId);
+              const isOutOfStock = availableStock <= 0;
+              const isAtMaxStock = availableStock > 0 && qty >= availableStock;
+
               return (
                 <div
                   key={item.key}
-                  className="flex items-center justify-between py-1 border-b border-slate-50 last:border-none"
+                  className={`p-2.5 rounded-2xl border transition-all ${
+                    isOutOfStock
+                      ? 'bg-rose-50/60 border-rose-200'
+                      : isAtMaxStock
+                      ? 'bg-amber-50/50 border-amber-200'
+                      : 'bg-slate-50/70 border-slate-200/70'
+                  }`}
                 >
-                  <span className="text-sm font-semibold text-slate-800">
-                    {item.label}
-                  </span>
+                  <div className="flex items-center justify-between gap-2">
+                    {/* Item Name & Stock Status Badge */}
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-bold text-slate-900">
+                          {item.label}
+                        </span>
+                        {isOutOfStock && (
+                          <span className="px-2 py-0.5 rounded-md text-[9.5px] font-black bg-rose-100 text-rose-700 border border-rose-300 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3 stroke-[2.5]" />
+                            {lang === 'gu' ? 'સ્ટોક ખાલી' : 'Out of Stock'}
+                          </span>
+                        )}
+                        {isAtMaxStock && (
+                          <span className="px-2 py-0.5 rounded-md text-[9.5px] font-black bg-amber-100 text-amber-800 border border-amber-300">
+                            {lang === 'gu' ? 'મહત્તમ સ્ટોક' : 'Max Available'}
+                          </span>
+                        )}
+                      </div>
 
-                  {/* Stepper with light mint buttons */}
-                  <div className="flex items-center bg-[#F1F5F9] rounded-xl p-1 border border-slate-200">
-                    <button
-                      onClick={() => handleQtyChange(item.key, -1)}
-                      className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 flex items-center justify-center font-bold text-sm transition-colors cursor-pointer"
-                      aria-label={`Decrease ${item.label}`}
-                    >
-                      <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
-                    </button>
-                    <span className="w-16 text-center font-bold text-slate-900 text-xs tabular-nums">
-                      {qty} {item.unit}
-                    </span>
-                    <button
-                      onClick={() => handleQtyChange(item.key, 1)}
-                      className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 flex items-center justify-center font-bold text-sm transition-colors cursor-pointer"
-                      aria-label={`Increase ${item.label}`}
-                    >
-                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                    </button>
+                      {/* Stock availability info */}
+                      <div className="text-[11px] text-slate-500 font-medium">
+                        {isOutOfStock ? (
+                          <span className="text-rose-600 font-semibold">
+                            {lang === 'gu' ? '૦ ઉપલબ્ધ (વિતરણ અશક્ય)' : '0 available in stock'}
+                          </span>
+                        ) : (
+                          <>
+                            <span>{lang === 'gu' ? 'કેન્દ્રમાં ઉપલબ્ધ: ' : 'Available Stock: '}</span>
+                            <span className="font-bold text-emerald-800">
+                              {formatRemainingBalance(availableStock)} {item.unit}
+                            </span>
+                            {qty > 0 && (
+                              <span className="text-slate-400 ml-1">
+                                • {lang === 'gu' ? 'બાકી રહેશે: ' : 'Remains: '}
+                                <strong className="text-slate-700">
+                                  {formatRemainingBalance(Math.max(0, availableStock - qty))}
+                                </strong>
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Stepper with click feedback that pops notification on limit / stock out */}
+                    <div className="flex items-center bg-white rounded-xl p-1 border border-slate-200 shadow-2xs">
+                      <button
+                        onClick={() => handleQtyChange(item.key, -1)}
+                        disabled={qty <= 0}
+                        className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 disabled:opacity-30 disabled:hover:bg-emerald-50 flex items-center justify-center font-bold text-sm transition-colors cursor-pointer"
+                        aria-label={`Decrease ${item.label}`}
+                      >
+                        <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </button>
+
+                      <span
+                        className={`w-16 text-center font-black text-xs tabular-nums ${
+                          isOutOfStock
+                            ? 'text-rose-600'
+                            : isAtMaxStock
+                            ? 'text-amber-800'
+                            : 'text-slate-900'
+                        }`}
+                      >
+                        {formatRemainingBalance(qty)} {item.unit}
+                      </span>
+
+                      <button
+                        onClick={() => handleQtyChange(item.key, 1)}
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-sm transition-all cursor-pointer ${
+                          isOutOfStock
+                            ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                            : isAtMaxStock
+                            ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                            : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                        }`}
+                        aria-label={`Increase ${item.label}`}
+                        title={
+                          isOutOfStock
+                            ? 'Item is out of stock'
+                            : isAtMaxStock
+                            ? 'Maximum available stock reached'
+                            : 'Increase quantity'
+                        }
+                      >
+                        <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -360,16 +613,23 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
         </div>
       )}
 
-      {/* Bottom Summary Card */}
+      {/* Bottom Summary Card: Remaining Balance Calculation */}
       {!success && (
         <div className="bg-[#EAF7EE] rounded-2xl p-4 border border-emerald-100/90 flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-white text-emerald-700 flex items-center justify-center shadow-2xs shrink-0">
               <Home className="w-5 h-5 stroke-[2]" />
             </div>
-            <span className="text-xs font-bold text-slate-800 max-w-[170px] leading-snug">
-              {t.remainingBalanceAfterDist}
-            </span>
+            <div>
+              <span className="text-xs font-bold text-slate-800 block leading-snug">
+                {t.remainingBalanceAfterDist}
+              </span>
+              <span className="text-[10px] text-slate-500 font-medium">
+                {lang === 'gu'
+                  ? 'દરેક વિતરણ પછી બાકી સ્ટોક આપમેળે ગણાઈ જાય છે'
+                  : 'Automated 3-decimal precision balance calculation'}
+              </span>
+            </div>
           </div>
 
           <div className="text-right pl-3 border-l border-emerald-200/60">
@@ -379,6 +639,136 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
             <span className="text-2xl font-black text-[#15803D] tabular-nums leading-none">
               {formatRemainingBalance(remainingStock)}
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* Pop End Notification Modal: Item Out of Stock or Quantity Exceeded */}
+      {/* ==================================================================== */}
+      {alertNotification && alertNotification.isOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-200 relative">
+            {/* Close Button Top Right */}
+            <button
+              onClick={() => setAlertNotification(null)}
+              className="absolute right-4 top-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4 stroke-[2.5]" />
+            </button>
+
+            {/* Notification Icon & Header */}
+            <div className="flex items-center gap-3 pt-1">
+              <div
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm shrink-0 ${
+                  alertNotification.type === 'out_of_stock'
+                    ? 'bg-rose-100 text-rose-700 ring-4 ring-rose-50'
+                    : alertNotification.type === 'limit_exceeded'
+                    ? 'bg-amber-100 text-amber-800 ring-4 ring-amber-50'
+                    : 'bg-emerald-100 text-emerald-800 ring-4 ring-emerald-50'
+                }`}
+              >
+                {alertNotification.type === 'out_of_stock' ? (
+                  <PackageX className="w-6 h-6 stroke-[2.2]" />
+                ) : alertNotification.type === 'limit_exceeded' ? (
+                  <AlertTriangle className="w-6 h-6 stroke-[2.2]" />
+                ) : (
+                  <AlertCircle className="w-6 h-6 stroke-[2.2]" />
+                )}
+              </div>
+
+              <div>
+                <span
+                  className={`text-[10px] font-black uppercase tracking-wider block ${
+                    alertNotification.type === 'out_of_stock'
+                      ? 'text-rose-700'
+                      : alertNotification.type === 'limit_exceeded'
+                      ? 'text-amber-800'
+                      : 'text-slate-600'
+                  }`}
+                >
+                  {alertNotification.type === 'out_of_stock'
+                    ? lang === 'gu' ? 'સ્ટોક ખાલી સૂચના' : 'Out of Stock Warning'
+                    : alertNotification.type === 'limit_exceeded'
+                    ? lang === 'gu' ? 'મહત્તમ સ્ટોક મર્યાદા' : 'Stock Limit Exceeded'
+                    : lang === 'gu' ? 'જરૂરી ચકાસણી' : 'Validation Alert'}
+                </span>
+                <h3 className="text-base font-extrabold text-slate-900 leading-tight">
+                  {alertNotification.title}
+                </h3>
+              </div>
+            </div>
+
+            {/* Detailed Notification Message Box */}
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+              <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                {alertNotification.message}
+              </p>
+
+              {alertNotification.itemName && (
+                <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500 font-semibold">
+                    {lang === 'gu' ? 'સામગ્રી:' : 'Item:'}
+                  </span>
+                  <span className="font-bold text-slate-900">
+                    {alertNotification.itemName}
+                  </span>
+                </div>
+              )}
+
+              {alertNotification.type !== 'validation_error' && (
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500 font-semibold">
+                    {lang === 'gu' ? 'કેન્દ્રમાં ઉપલબ્ધ જથ્થો:' : 'Available in Centre:'}
+                  </span>
+                  <span
+                    className={`font-black ${
+                      alertNotification.availableStock <= 0
+                        ? 'text-rose-600'
+                        : 'text-emerald-700'
+                    }`}
+                  >
+                    {formatRemainingBalance(alertNotification.availableStock)}{' '}
+                    {alertNotification.unit}
+                  </span>
+                </div>
+              )}
+
+              {alertNotification.requestedStock !== undefined &&
+                alertNotification.requestedStock > 0 && (
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-slate-500 font-semibold">
+                      {lang === 'gu' ? 'તમે પસંદ કરેલ જથ્થો:' : 'Attempted Quantity:'}
+                    </span>
+                    <span className="font-black text-rose-600">
+                      {alertNotification.requestedStock} {alertNotification.unit}
+                    </span>
+                  </div>
+                )}
+            </div>
+
+            {/* Official Guidance Note */}
+            <div className="flex items-start gap-2 text-[10.5px] text-slate-500">
+              <Info className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+              <span>
+                {lang === 'gu'
+                  ? 'પોષણ ૨.૦ નિયમ મુજબ ઉપલબ્ધ સ્ટોક કરતાં વધુ અથવા સ્ટોક ખાલી હોય તેવી સામગ્રીનું વિતરણ થઈ શકતું નથી.'
+                  : 'As per POSHAN 2.0 guidelines, distributions cannot exceed certified physically verified stock.'}
+              </span>
+            </div>
+
+            {/* Primary Action Button */}
+            <button
+              onClick={() => setAlertNotification(null)}
+              className={`w-full py-3 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer ${
+                alertNotification.type === 'out_of_stock'
+                  ? 'bg-rose-600 hover:bg-rose-700'
+                  : 'bg-[#15803D] hover:bg-[#166534]'
+              }`}
+            >
+              <span>{lang === 'gu' ? 'સમજાઈ ગયું (Understood)' : 'Understood, Got It'}</span>
+            </button>
           </div>
         </div>
       )}
