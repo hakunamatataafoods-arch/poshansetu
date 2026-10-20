@@ -36,6 +36,7 @@ import {
   loadLocal,
   saveLocal
 } from './services/firebase';
+import { INITIAL_RECENT_TRANSACTIONS, RecentTransactionItem } from './data/transactions';
 
 const INITIAL_INWARD_HISTORY: StockInwardRecord[] = [
   {
@@ -295,6 +296,7 @@ export default function App() {
   const [isCentreOpen, setIsCentreOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+  const [centreCategory, setCentreCategory] = useState<'overview' | 'children' | 'infant' | 'pregnant'>('overview');
 
   // Business Data
   const [inventory, setInventory] = useState<InventoryItem[]>(() => {
@@ -373,10 +375,17 @@ export default function App() {
     } else if (tab === 'help') {
       setIsHelpOpen(true);
     } else if (tab === 'centre') {
+      setCentreCategory('overview');
       setIsCentreOpen(true);
     } else if (tab === 'profile') {
       setIsProfileOpen(true);
     }
+  };
+
+  const handleOpenCentreDetails = (category?: 'children' | 'infant' | 'pregnant') => {
+    setCentreCategory(category || 'overview');
+    setActiveDockTab('centre');
+    setIsCentreOpen(true);
   };
 
   const handleMarkAllRead = () => {
@@ -642,6 +651,7 @@ export default function App() {
                   unreadCount={unreadNotifCount}
                   onLogout={handleLogout}
                   onOpenVoiceAssistant={() => setIsVoiceOpen(true)}
+                  onOpenProfile={() => setIsProfileOpen(true)}
                   inventory={inventory}
                   onUpdateInventory={handleUpdateInventory}
                 />
@@ -793,6 +803,7 @@ export default function App() {
             setActiveDockTab('home');
           }}
           lang={lang}
+          initialCategory={centreCategory}
         />
 
         <ProfileModal
@@ -806,6 +817,7 @@ export default function App() {
           isOnline={isOnline}
           onToggleOnline={handleToggleOnline}
           onLogout={handleLogout}
+          onOpenCentreDetails={handleOpenCentreDetails}
         />
       </main>
     </div>

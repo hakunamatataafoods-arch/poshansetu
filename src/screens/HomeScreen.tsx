@@ -27,6 +27,7 @@ interface HomeScreenProps {
   unreadCount: number;
   onLogout?: () => void;
   onOpenVoiceAssistant?: () => void;
+  onOpenProfile?: () => void;
   inventory?: InventoryItem[];
   onUpdateInventory?: (newInventory: InventoryItem[]) => void;
 }
@@ -41,6 +42,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   unreadCount,
   onLogout,
   onOpenVoiceAssistant,
+  onOpenProfile,
   inventory = [],
   onUpdateInventory
 }) => {
@@ -217,15 +219,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </div>
       </div>
 
-      {/* 2. Worker Profile Card (Directly underneath Top Bar matching poshan_setu_homepage_logo_first.png) */}
-      <div className="bg-[#EAF7EE] border border-emerald-200/60 rounded-3xl p-3 sm:p-3.5 flex items-center justify-between shadow-2xs">
+      {/* 2. Worker Profile Card (Clickable to open Anganwadi Worker Profile) */}
+      <div
+        onClick={onOpenProfile}
+        className="bg-[#EAF7EE] hover:bg-[#e2f4e7] border border-emerald-200/60 hover:border-emerald-300 rounded-3xl p-3 sm:p-3.5 flex items-center justify-between shadow-2xs cursor-pointer transition-all active:scale-[0.99] group"
+        title={lang === 'en' ? 'Click to view Anganwadi Worker profile' : 'આંગણવાડી કાર્યકર પ્રોફાઇલ જોવા ક્લિક કરો'}
+      >
         {/* Worker Avatar & Info */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-13 h-13 rounded-full overflow-hidden bg-white border-2 border-white shadow-xs shrink-0 flex items-center justify-center relative">
+          <div className="w-13 h-13 rounded-full overflow-hidden bg-white border-2 border-emerald-400 group-hover:border-emerald-600 shadow-xs shrink-0 flex items-center justify-center relative transition-colors">
             <img
               src={workerAvatar}
               alt={t.workerName}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
               onError={(e) => {
                 // Graceful fallback to initial initials if image fails
                 (e.target as HTMLElement).style.display = 'none';
@@ -237,17 +243,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </div>
           </div>
           <div className="min-w-0">
-            <h2 className="font-bold text-slate-900 text-[14.5px] sm:text-[15.5px] tracking-tight leading-tight truncate">
-              {lang === 'en' ? 'Smt. BhavnaBen Patel' : 'શ્રીમતી ભાવનાબેન પટેલ'}
-            </h2>
+            <div className="flex items-center gap-1.5">
+              <h2 className="font-bold text-slate-900 text-[14.5px] sm:text-[15.5px] tracking-tight leading-tight truncate group-hover:text-emerald-800 transition-colors">
+                {lang === 'en' ? 'Smt. BhavnaBen Patel' : 'શ્રીમતી ભાવનાબેન પટેલ'}
+              </h2>
+            </div>
             <p className="text-[11.5px] text-slate-600 font-medium leading-none mt-1">
-              {lang === 'en' ? 'Anganwadi Worker' : 'આંગણવાડી કાર્યકર'}
+              {lang === 'en' ? 'Anganwadi Worker • View Profile →' : 'આંગણવાડી કાર્યકર • પ્રોફાઇલ જુઓ →'}
             </p>
           </div>
         </div>
 
         {/* Location & Online Status Pill */}
-        <div className="flex flex-col items-end gap-1.5 shrink-0 pl-2">
+        <div
+          className="flex flex-col items-end gap-1.5 shrink-0 pl-2"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex items-center gap-1 text-[11.5px] font-bold text-slate-800">
             <MapPin className="w-3.5 h-3.5 text-emerald-700 fill-emerald-600" />
             <span>{lang === 'en' ? '04-Vadtal Centre' : '૦૪-વડતાલ કેન્દ્ર'}</span>
