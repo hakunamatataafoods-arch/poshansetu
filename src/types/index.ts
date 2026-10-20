@@ -24,16 +24,30 @@ export interface Student {
   parentName: string;
 }
 
+export interface MealMaterialItem {
+  id: string;
+  nameEn: string;
+  nameGu: string;
+  gmPerStudent: number;
+  totalGm: number;
+  totalKg: number;
+}
+
 export interface MealDeductionRecord {
   id: string;
   timestamp: string;
+  date?: string;
   mealType: 'breakfast' | 'lunch';
   menuName: string;
   studentsPresent: number;
   ratioPerStudentGm: number;
-  adjustmentGm: number;
+  adjustmentGm?: number;
+  materialsUsed: MealMaterialItem[];
   totalQuantityGm: number;
+  totalQuantityKg: number;
+  workerNote?: string;
   confirmedBy: string;
+  supervisorReviewed?: boolean;
 }
 
 export interface StockDistributionRecord {

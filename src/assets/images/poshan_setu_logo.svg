@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <!-- Background transparent / rounded square container -->
+  <defs>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- EMBLEM GRAPHIC -->
+  <g id="poshan_setu_emblem">
+    <!-- Top-Left Large Leaf (Lime Green) -->
+    <path d="M 120 160 C 95 105 130 55 175 75 C 195 115 175 165 120 160 Z" fill="#7CB342" />
+    <path d="M 140 145 Q 160 110 175 75" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+
+    <!-- Top-Right Large Leaf (Lime Green) -->
+    <path d="M 380 160 C 405 105 370 55 325 75 C 305 115 325 165 380 160 Z" fill="#7CB342" />
+    <path d="M 360 145 Q 340 110 325 75" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+
+    <!-- Mid-Left Medium Leaf (Dark Green) -->
+    <path d="M 88 172 C 86 160 110 162 135 190 C 142 210 120 216 88 172 Z" fill="#15803D" />
+    <path d="M 98 178 Q 120 188 135 190" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" opacity="0.5"/>
+
+    <!-- Mid-Right Medium Leaf (Dark Green) -->
+    <path d="M 412 165 C 414 153 390 157 368 186 C 362 206 384 212 412 165 Z" fill="#15803D" />
+    <path d="M 402 172 Q 382 184 368 186" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" opacity="0.5"/>
+
+    <!-- Central Saffron Mother / Youth Figure -->
+    <!-- Head -->
+    <circle cx="258" cy="95" r="32" fill="#E85D04" />
+    <!-- Dynamic torso & raised left arm -->
+    <path d="M 195 44 C 182 85 200 135 236 158 C 265 178 290 220 241 285 C 275 238 296 178 274 136 C 255 100 230 68 195 44 Z" fill="#E85D04" />
+    <path d="M 240 160 C 258 190 270 232 254 278 C 248 278 240 262 232 245 C 224 220 228 190 240 160 Z" fill="#F97316" />
+
+    <!-- Left Child Figure (Dark Forest Green) -->
+    <!-- Head -->
+    <circle cx="180" cy="214" r="22" fill="#15803D" />
+    <!-- Body with joyful raised arms -->
+    <path d="M 133 220 C 145 235 160 238 178 238 C 196 238 210 234 233 200 C 220 238 206 280 181 298 C 158 280 144 238 133 220 Z" fill="#15803D" />
+
+    <!-- Right Child Figure (Girl in Lime Green with Pigtails) -->
+    <!-- Head -->
+    <circle cx="340" cy="226" r="21" fill="#7CB342" />
+    <!-- Pigtails -->
+    <path d="M 314 206 C 302 206 300 222 316 222 C 322 222 322 212 314 206 Z" fill="#7CB342" />
+    <path d="M 366 210 C 378 210 382 226 368 230 C 362 230 360 218 366 210 Z" fill="#7CB342" />
+    <!-- Girl body with arms up -->
+    <path d="M 292 226 C 305 242 320 246 338 246 C 354 246 366 242 372 246 C 362 278 348 296 325 302 C 310 286 298 246 292 226 Z" fill="#7CB342" />
+
+    <!-- The 3-Arch Bridge ("Setu") in Dark Forest Green -->
+    <!-- Outer bridge arch border -->
+    <path d="M 148 330 C 195 292 305 292 352 330 L 350 336 C 302 300 198 300 150 336 Z" fill="#15803D" opacity="0.4"/>
+    
+    <!-- Main Bridge Structure -->
+    <path d="M 158 335 C 195 304 305 304 342 335 L 342 370 L 322 370 C 322 345 308 335 292 335 C 276 335 272 345 272 370 L 228 370 C 228 345 224 335 208 335 C 192 335 178 345 178 370 L 158 370 Z" fill="#15803D" />
+
+    <!-- Center Arch cutout (Middle pillar opening) -->
+    <path d="M 228 370 L 228 355 C 228 342 238 336 250 336 C 262 336 272 342 272 355 L 272 370 Z" fill="#FFFFFF" />
+
+    <!-- Left Arch cutout -->
+    <path d="M 178 370 L 178 358 C 178 348 185 344 193 344 C 201 344 208 348 208 358 L 208 370 Z" fill="#FFFFFF" />
+
+    <!-- Right Arch cutout -->
+    <path d="M 292 370 L 292 358 C 292 348 299 344 307 344 C 315 344 322 348 322 358 L 322 370 Z" fill="#FFFFFF" />
+
+    <!-- Base Leaves Flanking the Bridge (Lime Green Wings) -->
+    <!-- Left base leaf -->
+    <path d="M 35 315 C 90 315 155 338 200 372 C 145 372 80 352 35 315 Z" fill="#7CB342" />
+
+    <!-- Right base leaf -->
+    <path d="M 465 315 C 410 315 345 338 300 372 C 355 372 420 352 465 315 Z" fill="#7CB342" />
+  </g>
+
+  <!-- WORDMARK TYPOGRAPHY -->
+  <g id="poshan_setu_wordmark" transform="translate(0, 440)">
+    <!-- "Poshan" in Bold Orange -->
+    <text x="38" y="0" font-family="'Nunito', 'Segoe UI', system-ui, -apple-system, sans-serif" font-size="62" font-weight="900" fill="#E85D04" letter-spacing="-1.5">Poshan</text>
+    
+    <!-- "Setu" in Bold Forest Green -->
+    <text x="306" y="0" font-family="'Nunito', 'Segoe UI', system-ui, -apple-system, sans-serif" font-size="62" font-weight="900" fill="#15803D" letter-spacing="-1.5">Setu</text>
+  </g>
+</svg>

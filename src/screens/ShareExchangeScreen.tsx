@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Repeat, ShieldCheck, KeyRound, CheckCircle2, ArrowRightLeft, Building2 } from 'lucide-react';
+import { ArrowLeft, Repeat, ShieldCheck, KeyRound, CheckCircle2, ArrowRightLeft, Building2, Home } from 'lucide-react';
 import { PoshanSetuLogo } from '../components/PoshanSetuLogo';
 import { Language } from '../types';
 import { translations } from '../data/translations';
@@ -130,9 +130,10 @@ export const ShareExchangeScreen: React.FC<ShareExchangeScreenProps> = ({
 
           <button
             onClick={onBack}
-            className="w-full py-3 bg-[#15803D] hover:bg-[#166534] text-white font-bold text-xs rounded-xl transition-colors"
+            className="w-full py-3.5 bg-[#15803D] hover:bg-[#166534] active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
           >
-            {lang === 'en' ? 'Return to Home' : 'મુખ્ય પેજ પર પાછા જાઓ'}
+            <Home className="w-4 h-4 stroke-[2.2]" />
+            <span>{lang === 'en' ? 'Return to Home Page' : 'મુખ્ય પેજ પર પાછા જાઓ'}</span>
           </button>
         </div>
       ) : (

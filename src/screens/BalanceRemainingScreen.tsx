@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Package, AlertCircle, Calendar, ShieldCheck, Download, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Package, AlertCircle, Calendar, ShieldCheck, Download, RefreshCw, Home } from 'lucide-react';
 import { PoshanSetuLogo } from '../components/PoshanSetuLogo';
 import { InventoryItem, Language } from '../types';
 import { translations } from '../data/translations';
@@ -10,6 +10,12 @@ interface BalanceRemainingScreenProps {
   inventory: InventoryItem[];
   onRefresh: () => void;
 }
+
+export const formatRemainingBalance = (num: number): string => {
+  if (num === null || num === undefined || isNaN(num)) return '0';
+  if (Number.isInteger(num)) return num.toString();
+  return num.toFixed(3);
+};
 
 export const BalanceRemainingScreen: React.FC<BalanceRemainingScreenProps> = ({
   onBack,
@@ -29,9 +35,10 @@ export const BalanceRemainingScreen: React.FC<BalanceRemainingScreenProps> = ({
     .filter((i) => i.category === 'packet')
     .reduce((sum, i) => sum + i.currentStock, 0);
 
-  const totalStaplesKg = inventory
+  const rawStaplesKg = inventory
     .filter((i) => i.category === 'staple')
     .reduce((sum, i) => sum + i.currentStock, 0);
+  const totalStaplesKg = formatRemainingBalance(rawStaplesKg);
 
   return (
     <div className="px-4 pt-1 pb-10 space-y-4">
@@ -140,7 +147,7 @@ export const BalanceRemainingScreen: React.FC<BalanceRemainingScreenProps> = ({
 
                 <div className="text-right">
                   <span className="text-lg font-black text-slate-900 tabular-nums">
-                    {item.currentStock}{' '}
+                    {formatRemainingBalance(item.currentStock)}{' '}
                     <span className="text-xs font-semibold text-slate-600">{item.unit}</span>
                   </span>
                   {isLow && (
@@ -170,6 +177,15 @@ export const BalanceRemainingScreen: React.FC<BalanceRemainingScreenProps> = ({
           );
         })}
       </div>
+
+      {/* Return to Home Page Button */}
+      <button
+        onClick={onBack}
+        className="w-full py-3.5 bg-[#15803D] hover:bg-[#166534] active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
+      >
+        <Home className="w-4 h-4 stroke-[2.2]" />
+        <span>{lang === 'en' ? 'Return to Home Page' : 'મુખ્ય પેજ પર પાછા જાઓ'}</span>
+      </button>
     </div>
   );
 };

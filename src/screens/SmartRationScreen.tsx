@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, BookOpen, Scale, Award, Info, Check } from 'lucide-react';
+import { ArrowLeft, BookOpen, Scale, Award, Info, Check, Home } from 'lucide-react';
 import { PoshanSetuLogo } from '../components/PoshanSetuLogo';
 import { Language } from '../types';
 import { translations } from '../data/translations';
@@ -113,6 +113,15 @@ export const SmartRationScreen: React.FC<SmartRationScreenProps> = ({ onBack, la
           </div>
         </div>
       </div>
+
+      {/* Return to Home Page Button */}
+      <button
+        onClick={onBack}
+        className="w-full py-3.5 bg-[#15803D] hover:bg-[#166534] active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
+      >
+        <Home className="w-4 h-4 stroke-[2.2]" />
+        <span>{lang === 'en' ? 'Return to Home Page' : 'મુખ્ય પેજ પર પાછા જાઓ'}</span>
+      </button>
     </div>
   );
 };

@@ -13,9 +13,14 @@ import {
   Bot,
   User,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  PackagePlus,
+  Package,
+  Calendar,
+  Layers,
+  Users
 } from 'lucide-react';
-import { Language, InventoryItem } from '../types';
+import { Language, InventoryItem, InwardItemDetail } from '../types';
 import { translations } from '../data/translations';
 
 interface VoiceAssistantModalProps {
@@ -26,6 +31,13 @@ interface VoiceAssistantModalProps {
   inventory: InventoryItem[];
   studentsCount: number;
   onNavigate: (screen: string) => void;
+  onVoiceInward?: (data: {
+    inwardDate: string;
+    challanNo: string;
+    supplier: string;
+    items: InwardItemDetail[];
+  }) => void;
+  onSetAllStudents?: (present: boolean) => void;
 }
 
 interface ChatMessage {
@@ -34,8 +46,27 @@ interface ChatMessage {
   text: string;
   actionScreen?: string;
   actionLabel?: string;
+  inwardSuccess?: {
+    itemName: string;
+    quantity: number;
+    unit: string;
+    batchNo: string;
+    expiryDate: string;
+    newTotal: number;
+  };
   timestamp: string;
 }
+
+// Gujarati numeral translation helper
+const GUJARATI_NUMBERS: Record<string, number> = {
+  '૦': 0, '૧': 1, '૨': 2, '૩': 3, '૪': 4,
+  '૫': 5, '૬': 6, '૭': 7, '૮': 8, '૯': 9,
+  'એક': 1, 'બે': 2, 'ત્રણ': 3, 'ચાર': 4, 'પાંચ': 5,
+  'છ': 6, 'સાત': 7, 'આઠ': 8, 'નવ': 9, 'દસ': 10,
+  'પંદર': 15, 'વીસ': 20, 'પચીસ': 25, 'ત્રીસ': 30,
+  'ચાલીસ': 40, 'પચાસ': 50, 'સાઠ': 60, 'સિત્તેર': 70,
+  'એંસી': 80, 'નેવું': 90, 'સો': 100
+};
 
 export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   isOpen,
@@ -44,7 +75,9 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   onLanguageChange,
   inventory,
   studentsCount,
-  onNavigate
+  onNavigate,
+  onVoiceInward,
+  onSetAllStudents
 }) => {
   const t = translations[lang];
   const [isListening, setIsListening] = useState(false);
@@ -52,30 +85,24 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   const [transcript, setTranscript] = useState('');
   const [textInput, setTextInput] = useState('');
   const [speechSupported, setSpeechSupported] = useState(true);
-  const [activeSpeechLang, setActiveSpeechLang] = useState<'gu-IN' | 'en-IN'>(
-    lang === 'gu' ? 'gu-IN' : 'en-IN'
-  );
+  const [audioEnabled, setAudioEnabled] = useState(true);
+
+  // Gujarati is the primary language for voice interactions
+  const [activeSpeechLang, setActiveSpeechLang] = useState<'gu-IN' | 'en-IN'>('gu-IN');
 
   const recognitionRef = useRef<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize initial welcome message
+  // Initial welcome message in Gujarati
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: 'welcome-1',
       sender: 'assistant',
       text:
-        lang === 'gu'
-          ? 'નમસ્તે ભાવનાબેન! 🙏 હું પોષણ વાણી છું — તમારી આંગણવાડી અવાજ સહાયક. માઇક પર ટેપ કરો અને સ્ટોક, આજનો ખોરાક, અથવા હાજરી વિશે પૂછો.'
-          : 'Namaste Bhavnaben! 🙏 I am Poshan Vani — your Anganwadi Voice Assistant. Tap the mic and ask about stock, today’s meal menu, or attendance.',
+        'નમસ્તે ભાવનાબેન! 🙏 હું પોષણ વાણી છું — તમારી ગુજરાતી અવાજ સહાયક.\n\nતમે બોલીને સ્ટોક આવક નોંધાવી શકો છો (દા.ત. "ચોખા ૨૫ કિલો આવક" અથવા "તેલ ૧૦ લિટર આવ્યા"), બાકી જથ્થો ચકાસી શકો છો, આજનું ભોજન મેનુ જોઈ શકો છો અથવા A4 રિપોર્ટ ડાઉનલોડ કરી શકો છો.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
-
-  // Keep speech language in sync with main app language
-  useEffect(() => {
-    setActiveSpeechLang(lang === 'gu' ? 'gu-IN' : 'en-IN');
-  }, [lang]);
 
   // Scroll to bottom of chat
   useEffect(() => {
@@ -104,7 +131,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     }
   }, [isOpen]);
 
-  // Setup Web Speech API Recognition
+  // Setup Web Speech API Recognition with Gujarati by default
   useEffect(() => {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -158,27 +185,31 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     };
   }, [activeSpeechLang]);
 
-  // Trigger speech synthesis
-  const speakText = (text: string, voiceLang: string = activeSpeechLang) => {
-    if (!window.speechSynthesis) return;
+  // Trigger Gujarati speech synthesis
+  const speakText = (text: string, voiceLang: string = 'gu-IN') => {
+    if (!audioEnabled || !window.speechSynthesis) return;
 
     window.speechSynthesis.cancel();
 
     // Clean emojis and markdown from speech string
     const cleanSpeech = text
       .replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '')
-      .replace(/[•*#]/g, ' ')
+      .replace(/[•*#✓🚨📥🍲👶📦🛢️🥣📄]/g, ' ')
       .trim();
 
     const utterance = new SpeechSynthesisUtterance(cleanSpeech);
     utterance.lang = voiceLang;
-    utterance.rate = 0.95; // Gentle, clear speed for Anganwadi workers
+    utterance.rate = 0.92; // Warm, steady, respectful tone for Anganwadi worker
     utterance.pitch = 1.05;
 
-    // Try finding Gujarati or Indian English voice
+    // Pick Gujarati or Indian phonetic voice
     const voices = window.speechSynthesis.getVoices();
     const matchedVoice = voices.find(
-      (v) => v.lang.toLowerCase().includes(voiceLang.toLowerCase()) || v.lang.includes('IN')
+      (v) =>
+        v.lang.toLowerCase().includes('gu') ||
+        v.lang.toLowerCase().includes('in') ||
+        v.name.toLowerCase().includes('gujarati') ||
+        v.name.toLowerCase().includes('india')
     );
     if (matchedVoice) {
       utterance.voice = matchedVoice;
@@ -198,7 +229,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     }
   };
 
-  // Start Voice Listening
+  // Start / Stop Voice Listening
   const toggleListening = () => {
     if (isSpeaking) {
       stopSpeaking();
@@ -229,7 +260,35 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     }
   };
 
-  // Process query and return intelligent response
+  // Helper: Extract quantity from text (Gujarati numbers or digits)
+  const extractQuantity = (text: string, defaultQty: number = 25): number => {
+    // 1. Look for English digits
+    const digitMatch = text.match(/\d+(\.\d+)?/);
+    if (digitMatch) {
+      return parseFloat(digitMatch[0]);
+    }
+
+    // 2. Look for Gujarati numerals
+    const gujDigitsMatch = text.match(/[૦-૯]+/);
+    if (gujDigitsMatch) {
+      const converted = gujDigitsMatch[0]
+        .split('')
+        .map((ch) => GUJARATI_NUMBERS[ch] ?? 0)
+        .join('');
+      return parseFloat(converted) || defaultQty;
+    }
+
+    // 3. Look for Gujarati word numbers
+    for (const [word, val] of Object.entries(GUJARATI_NUMBERS)) {
+      if (text.includes(word)) {
+        return val;
+      }
+    }
+
+    return defaultQty;
+  };
+
+  // Process query and return intelligent Gujarati response
   const handleProcessQuery = (queryText: string) => {
     if (!queryText.trim()) return;
 
@@ -244,23 +303,12 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     setTranscript('');
     setTextInput('');
 
-    // Process intent
     const q = queryText.toLowerCase();
-    const isGujarati =
-      lang === 'gu' ||
-      /[\u0A80-\u0AFF]/.test(queryText) ||
-      q.includes('ખોરાક') ||
-      q.includes('મેનુ') ||
-      q.includes('ચોખા') ||
-      q.includes('તેલ') ||
-      q.includes('સ્ટોક') ||
-      q.includes('હાજરી') ||
-      q.includes('સુપરવિઝન') ||
-      q.includes('રિપોર્ટ');
 
     let responseText = '';
     let actionScreen: string | undefined;
     let actionLabel: string | undefined;
+    let inwardRecord: ChatMessage['inwardSuccess'];
 
     // Helper item quantity fetcher
     const getItem = (id: string) => inventory.find((i) => i.id === id);
@@ -270,9 +318,129 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
     const balShakti = getItem('bal_shakti');
     const matruShakti = getItem('matru_shakti');
     const purnaShakti = getItem('purna_shakti');
+    const dal = getItem('dal');
 
-    // 1. Food Menu / Daily Meal
+    // =========================================================================
+    // 1. VOICE STOCK INWARD (ગુજરાતીમાં સ્ટોક આવક નોંધણી)
+    // Matches inputs like: "ચોખા ૨૫ કિલો આવક", "તેલ ૧૦ લિટર આવ્યા", "૫૦ કિલો ચોખા ઉમેરો", "બાલ શક્તિ ૨૦ પેકેટ આવક"
+    // =========================================================================
+    const isInwardQuery =
+      q.includes('આવક') ||
+      q.includes('આવ્યા') ||
+      q.includes('આવ્યો') ||
+      q.includes('ઉમેરો') ||
+      q.includes('નોંધો') ||
+      q.includes('મળ્યા') ||
+      q.includes('inward') ||
+      q.includes('received') ||
+      q.includes('add stock');
+
     if (
+      isInwardQuery &&
+      (q.includes('ચોખા') ||
+        q.includes('rice') ||
+        q.includes('તેલ') ||
+        q.includes('oil') ||
+        q.includes('ઘઉં') ||
+        q.includes('લોટ') ||
+        q.includes('atta') ||
+        q.includes('શક્તિ') ||
+        q.includes('બાલ') ||
+        q.includes('માતૃ') ||
+        q.includes('પૂર્ણા') ||
+        q.includes('દાળ') ||
+        q.includes('dal'))
+    ) {
+      let targetItem = rice;
+      let targetName = 'ફોર્ટિફાઇડ ચોખા (Rice)';
+      let targetUnit = 'kg';
+      let batchPrefix = 'RIC-2026';
+      let defaultQuantity = 25;
+
+      if (q.includes('તેલ') || q.includes('oil')) {
+        targetItem = oil;
+        targetName = 'ફોર્ટિફાઇડ ખાદ્ય તેલ (Fortified Oil)';
+        targetUnit = 'litre';
+        batchPrefix = 'OIL-2026';
+        defaultQuantity = 10;
+      } else if (q.includes('ઘઉં') || q.includes('લોટ') || q.includes('atta')) {
+        targetItem = wheat;
+        targetName = 'ઘઉંનો લોટ / આટો (Whole Wheat Atta)';
+        targetUnit = 'kg';
+        batchPrefix = 'ATT-2026';
+        defaultQuantity = 30;
+      } else if (q.includes('બાલ') || (q.includes('shakti') && !q.includes('માતૃ') && !q.includes('પૂર્ણા'))) {
+        targetItem = balShakti;
+        targetName = 'બાલ શક્તિ પૂરક આહાર (Bal Shakti)';
+        targetUnit = 'Pack';
+        batchPrefix = 'BAL-26';
+        defaultQuantity = 20;
+      } else if (q.includes('માતૃ')) {
+        targetItem = matruShakti;
+        targetName = 'માતૃ શક્તિ પૂરક આહાર (Matru Shakti)';
+        targetUnit = 'Pack';
+        batchPrefix = 'MAT-26';
+        defaultQuantity = 15;
+      } else if (q.includes('પૂર્ણા') || q.includes('poon') || q.includes('purna')) {
+        targetItem = purnaShakti;
+        targetName = 'પૂર્ણા શક્તિ પૂરક આહાર (Purna Shakti)';
+        targetUnit = 'Pack';
+        batchPrefix = 'PUR-26';
+        defaultQuantity = 15;
+      } else if (q.includes('દાળ') || q.includes('dal') || q.includes('તુવેર')) {
+        targetItem = dal;
+        targetName = 'તુવેર દાળ (Tuver Dal)';
+        targetUnit = 'kg';
+        batchPrefix = 'DAL-26';
+        defaultQuantity = 20;
+      }
+
+      const qty = extractQuantity(queryText, defaultQuantity);
+      const generatedBatch = `${batchPrefix}-X${Math.floor(Math.random() * 80) + 10}`;
+      const expiryDate = '12-2027';
+      const todayDate = new Date().toISOString().slice(0, 10);
+      const challanNo = `CHL-VAD-${Date.now().toString().slice(-4)}`;
+
+      // Execute stock inward directly through parent handler
+      if (onVoiceInward && targetItem) {
+        onVoiceInward({
+          inwardDate: todayDate,
+          challanNo,
+          supplier: 'જિલ્લા અન્ન અને નાગરિક પુરવઠા નિગમ (આણંદ ગોડાઉન)',
+          items: [
+            {
+              itemId: targetItem.id,
+              itemName: targetItem.nameEn,
+              quantity: qty,
+              unit: targetUnit,
+              batchNo: generatedBatch,
+              expiryDate: expiryDate
+            }
+          ]
+        });
+      }
+
+      const currentQty = targetItem?.currentStock ?? 0;
+      const newTotal = currentQty + qty;
+
+      responseText = `✓ સફળ સ્ટોક આવક નોંધણી!\n• વસ્તુ: ${targetName}\n• જથ્થો: +${qty} ${targetUnit}\n• બેચ નંબર: ${generatedBatch}\n• એક્સપાયરી તારીખ: ${expiryDate}\n• નવો ઉપલબ્ધ સ્ટોક: ${newTotal} ${targetUnit}\n\nઆ એન્ટ્રી ચલણ #${challanNo} હેઠળ સત્તાવાર સ્ટોક રજીસ્ટરમાં સુરક્ષિત રીતે નોંધાઈ ગઈ છે.`;
+      actionLabel = 'સ્ટોક આવક રજીસ્ટર જુઓ';
+      actionScreen = 'stock-received';
+
+      inwardRecord = {
+        itemName: targetName,
+        quantity: qty,
+        unit: targetUnit,
+        batchNo: generatedBatch,
+        expiryDate,
+        newTotal
+      };
+    }
+
+    // =========================================================================
+    // 2. FOOD MENU / DAILY MEAL (આજનું ભોજન મેનુ)
+    // =========================================================================
+    else if (
       q.includes('menu') ||
       q.includes('food') ||
       q.includes('meal') ||
@@ -281,45 +449,39 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       q.includes('ખોરાક') ||
       q.includes('મેનુ') ||
       q.includes('રસોઈ') ||
-      q.includes('જમવાનું')
+      q.includes('જમવાનું') ||
+      q.includes('નાસ્તો')
     ) {
-      if (isGujarati) {
-        responseText = `આજનું દૈનિક ભોજન મેનુ:\n• પૌષ્ટિક ગરમ ભોજન: ચોખા અને તુવેર દાળ.\n• ૨૪ હાજર બાળકો માટે ફોર્ટિફાઇડ તેલમાં તૈયાર કરવામાં આવ્યું છે.\n• સવારે નાસ્તો: બાલ શક્તિ ઉપમા.`;
-        actionLabel = 'દૈનિક ફૂડ મેનુ ખોલો';
-      } else {
-        responseText = `Today's Daily Food Menu:\n• Hot Cooked Meal: Fortified Rice & Tuver Dal.\n• Prepared with fortified edible oil for ${studentsCount} attending children.\n• Morning snack: Bal Shakti Upma.`;
-        actionLabel = 'Open Daily Food Menu';
-      }
+      const neededKg = (studentsCount * 80) / 1000;
+      const neededKgStr = Number.isInteger(neededKg) ? neededKg.toString() : neededKg.toFixed(3);
+      responseText = `આજનું દૈનિક પોષક ભોજન મેનુ:\n• સવારનો નાસ્તો (Meal 1): સુખડી / પૌષ્ટિક બાલ શક્તિ ઉપમા (૩૦ ગ્રામ પ્રતિ બાળક).\n• બપોરનું ભોજન (Meal 2): ગરમ વેજીટેબલ ખીચડી અને તુવેર દાળ (૫૦ ગ્રામ પ્રતિ બાળક).\n• ${studentsCount} હાજર બાળકો માટે ફોર્ટિફાઇડ તેલમાં તૈયાર થશે.\n• કુલ જરૂરી રાશન: ${neededKgStr} કિલો.`;
+      actionLabel = 'દૈનિક ફૂડ મેનુ રજીસ્ટર ખોલો';
       actionScreen = 'food-menu';
     }
 
-    // 2. Rice stock
+    // =========================================================================
+    // 3. RICE STOCK (ચોખાનો સ્ટોક)
+    // =========================================================================
     else if (q.includes('rice') || q.includes('chokha') || q.includes('ચોખા')) {
       const qty = rice?.currentStock ?? 25;
-      if (isGujarati) {
-        responseText = `ચોખાનો બાકી જથ્થો: હાલમાં ${qty} કિલો ચોખા ઉપલબ્ધ છે. બેચ નંબર: RIC-VAD-26-04, એક્સપાયરી: ૧૨/૨૦૨૭.`;
-        actionLabel = 'બાકી જથ્થો રજીસ્ટર જુઓ';
-      } else {
-        responseText = `Fortified Rice Balance: Currently ${qty} kg is available in stock. Batch: RIC-VAD-26-04, Expiry: 12/2027.`;
-        actionLabel = 'View Stock Balance';
-      }
+      responseText = `ચોખાનો બાકી જથ્થો:\nહાલમાં આંગણવાડી કેન્દ્ર ૦૪ વડતાલમાં ${qty} કિલો ફોર્ટિફાઇડ ચોખા ઉપલબ્ધ છે.\nબેચ નંબર: ${rice?.batchNo || 'RIC-2026-X8'}\nએક્સપાયરી: ${rice?.expiryDate || '12-2027'}\nસ્થિતિ: ${qty > 10 ? 'પૂરતો જથ્થો ઉપલબ્ધ છે' : 'ઓછો જથ્થો - તાત્કાલિક માગણી કરો'}.`;
+      actionLabel = 'બાકી જથ્થો રજીસ્ટર જુઓ';
       actionScreen = 'balance-remaining';
     }
 
-    // 3. Oil stock
+    // =========================================================================
+    // 4. OIL STOCK (તેલનો સ્ટોક)
+    // =========================================================================
     else if (q.includes('oil') || q.includes('tel') || q.includes('તેલ')) {
       const qty = oil?.currentStock ?? 10;
-      if (isGujarati) {
-        responseText = `તેલનો બાકી જથ્થો: હાલમાં ${qty} લિટર ફોર્ટિફાઇડ તેલ ઉપલબ્ધ છે. બેચ નંબર: OIL-VAD-26-09.`;
-        actionLabel = 'બાકી જથ્થો રજીસ્ટર જુઓ';
-      } else {
-        responseText = `Fortified Edible Oil Balance: Currently ${qty} litres available in stock. Batch: OIL-VAD-26-09.`;
-        actionLabel = 'View Stock Balance';
-      }
+      responseText = `તેલનો બાકી જથ્થો:\nહાલમાં કેન્દ્ર પર ${qty} લિટર ફોર્ટિફાઇડ ખાદ્ય તેલ ઉપલબ્ધ છે.\nબેચ નંબર: ${oil?.batchNo || 'OIL-2026-X9'}\nએક્સપાયરી: ${oil?.expiryDate || '08-2027'}\nઆ તેલ દૈનિક ભોજન માટે યોગ્ય છે.`;
+      actionLabel = 'બાકી જથ્થો રજીસ્ટર જુઓ';
       actionScreen = 'balance-remaining';
     }
 
-    // 4. Bal Shakti / Matru Shakti / Purna Shakti
+    // =========================================================================
+    // 5. BAL / MATRU / PURNA SHAKTI (શક્તિ પેકેટ સ્ટોક)
+    // =========================================================================
     else if (
       q.includes('shakti') ||
       q.includes('bal') ||
@@ -331,20 +493,17 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       q.includes('માતૃ') ||
       q.includes('પૂર્ણા')
     ) {
-      const bQty = balShakti?.currentStock ?? 15;
-      const mQty = matruShakti?.currentStock ?? 10;
-      const pQty = purnaShakti?.currentStock ?? 10;
-      if (isGujarati) {
-        responseText = `શક્તિ પ્રીમિક્સ સ્ટોક:\n• બાલ શક્તિ: ${bQty} પેકેટ\n• માતૃ શક્તિ: ${mQty} પેકેટ\n• પૂર્ણા શક્તિ: ${pQty} પેકેટ`;
-        actionLabel = 'બાકી જથ્થો તપાસો';
-      } else {
-        responseText = `Shakti Premix Stock:\n• Bal Shakti: ${bQty} packets\n• Matru Shakti: ${mQty} packets\n• Purna Shakti: ${pQty} packets`;
-        actionLabel = 'View Item-wise Balance';
-      }
+      const bQty = balShakti?.currentStock ?? 35;
+      const mQty = matruShakti?.currentStock ?? 24;
+      const pQty = purnaShakti?.currentStock ?? 20;
+      responseText = `ટેક-હોમ રેશન (THR) શક્તિ પેકેટ સ્ટોક:\n• બાલ શક્તિ (બાળકો માટે): ${bQty} પેકેટ (બેચ: ${balShakti?.batchNo})\n• માતૃ શક્તિ (ધાત્રી-સગર્ભા બહેનો માટે): ${mQty} પેકેટ (બેચ: ${matruShakti?.batchNo})\n• પૂર્ણા શક્તિ (કિશોરીઓ માટે): ${pQty} પેકેટ (બેચ: ${purnaShakti?.batchNo})`;
+      actionLabel = 'આઇટમવાઇઝ બેલેન્સ જુઓ';
       actionScreen = 'balance-remaining';
     }
 
-    // 5. Total Stock Balance / Inventory overview
+    // =========================================================================
+    // 6. TOTAL STOCK BALANCE / OVERVIEW (કુલ સ્ટોક / ઇન્વેન્ટરી)
+    // =========================================================================
     else if (
       q.includes('balance') ||
       q.includes('stock') ||
@@ -353,19 +512,17 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       q.includes('જથ્થો') ||
       q.includes('સ્ટોક') ||
       q.includes('કેટલો') ||
-      q.includes('બાકી')
+      q.includes('બાકી') ||
+      q.includes('માલ')
     ) {
-      if (isGujarati) {
-        responseText = `આંગણવાડી સેન્ટર ૦૪ વડતાલનો વર્તમાન સ્ટોક:\n• ચોખા: ${rice?.currentStock ?? 25} કિલો\n• ઘઉં લોટ: ${wheat?.currentStock ?? 20} કિલો\n• તેલ: ${oil?.currentStock ?? 10} લિટર\n• બાલ શક્તિ: ${balShakti?.currentStock ?? 15} પેકેટ\n• માતૃ શક્તિ: ${matruShakti?.currentStock ?? 10} પેકેટ\n• પૂર્ણા શક્તિ: ${purnaShakti?.currentStock ?? 10} પેકેટ`;
-        actionLabel = 'બાકી જથ્થો વિગતવાર જુઓ';
-      } else {
-        responseText = `Current Stock at AWVAD04 Centre:\n• Fortified Rice: ${rice?.currentStock ?? 25} kg\n• Whole Wheat Atta: ${wheat?.currentStock ?? 20} kg\n• Fortified Oil: ${oil?.currentStock ?? 10} litres\n• Bal Shakti: ${balShakti?.currentStock ?? 15} packets\n• Matru Shakti: ${matruShakti?.currentStock ?? 10} packets\n• Purna Shakti: ${purnaShakti?.currentStock ?? 10} packets`;
-        actionLabel = 'View Complete Inventory';
-      }
+      responseText = `આંગણવાડી સેન્ટર ૦૪ વડતાલનો વર્તમાન સ્ટોક સારાંશ:\n• ચોખા: ${rice?.currentStock ?? 25} કિલો\n• ઘઉં લોટ: ${wheat?.currentStock ?? 50} કિલો\n• ખાદ્ય તેલ: ${oil?.currentStock ?? 22} લિટર\n• તુવેર દાળ: ${dal?.currentStock ?? 25} કિલો\n• બાલ શક્તિ: ${balShakti?.currentStock ?? 35} પેકેટ\n• માતૃ શક્તિ: ${matruShakti?.currentStock ?? 24} પેકેટ\n• પૂર્ણા શક્તિ: ${purnaShakti?.currentStock ?? 20} પેકેટ`;
+      actionLabel = 'સંપૂર્ણ ઇન્વેન્ટરી રજીસ્ટર ખોલો';
       actionScreen = 'balance-remaining';
     }
 
-    // 6. Student Attendance
+    // =========================================================================
+    // 7. STUDENT ATTENDANCE (વિદ્યાર્થી હાજરી)
+    // =========================================================================
     else if (
       q.includes('attendance') ||
       q.includes('student') ||
@@ -375,77 +532,50 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       q.includes('વિદ્યાર્થી') ||
       q.includes('બાળકો')
     ) {
-      if (isGujarati) {
-        responseText = `આજની વિદ્યાર્થી હાજરી:\n• ૨૫ નોંધાયેલા બાળકોમાંથી ${studentsCount} બાળકો હાજર છે.\n• હાજરી દર: ${Math.round((studentsCount / 25) * 100)}%.\n• શું તમારે હાજરી પત્રક ખોલવું છે?`;
-        actionLabel = 'વિદ્યાર્થીઓની હાજરી ખોલો';
-      } else {
-        responseText = `Today's Student Attendance:\n• ${studentsCount} out of 25 enrolled students are marked present.\n• Attendance rate: ${Math.round((studentsCount / 25) * 100)}%.\n• Tap below to review or update attendance.`;
-        actionLabel = 'Open Student Attendance';
-      }
+      responseText = `વિદ્યાર્થીઓની આજની હાજરી:\n• કુલ નોંધાયેલા બાળકો: ૧૦\n• આજે હાજર બાળકો: ${studentsCount} / ૧૦\n• આજે ગેરહાજર બાળકો: ${10 - studentsCount}\n• આજનો હાજરી દર: ${Math.round((studentsCount / 10) * 100)}%\n• આ સંખ્યા મુજબ દૈનિક ભોજનનું રાશન ઓટોમેટિક ગણાઈ ગયું છે.`;
+      actionLabel = 'વિદ્યાર્થી હાજરી પત્રક ખોલો';
       actionScreen = 'student-attendance';
     }
 
-    // 7. Supervision Alert
+    // =========================================================================
+    // 8. MARK ALL STUDENTS PRESENT (બધા હાજર કરો)
+    // =========================================================================
+    else if (
+      q.includes('બધા હાજર') ||
+      q.includes('તમામ હાજર') ||
+      q.includes('all present') ||
+      q.includes('mark all')
+    ) {
+      if (onSetAllStudents) {
+        onSetAllStudents(true);
+      }
+      responseText = `✓ તમામ ૧૦ વિદ્યાર્થીઓની હાજરી સફળતાપૂર્વક 'હાજર' તરીકે નોંધાઈ ગઈ છે!\nદૈનિક ભોજન માટે ૧૦ બાળકોનું સંપૂર્ણ રાશન તૈયાર કરી શકાય છે.`;
+      actionLabel = 'હાજરી પત્રક ચકાસો';
+      actionScreen = 'student-attendance';
+    }
+
+    // =========================================================================
+    // 9. SUPERVISION ALERT (મુખ્ય સેવિકા મુલાકાત)
+    // =========================================================================
     else if (
       q.includes('supervis') ||
       q.includes('inspect') ||
-      q.includes('alert') ||
       q.includes('shardaben') ||
       q.includes('visit') ||
       q.includes('સુપરવિઝન') ||
       q.includes('મુલાકાત') ||
       q.includes('તપાસ') ||
-      q.includes('એલર્ટ')
+      q.includes('એલર્ટ') ||
+      q.includes('શારદાબેન')
     ) {
-      if (isGujarati) {
-        responseText = `🚨 સુપરવિઝન ચેતવણી:\nમુખ્ય સેવિકા શારદાબેન શાહ આવતીકાલે સવારે ૧૧:૦૦ વાગ્યે આંગણવાડી કેન્દ્ર ૦૪ વડતાલની મુલાકાતે આવી રહ્યા છે.\nમહેરબાની કરીને સ્ટોક રજીસ્ટર, ભોજન નમૂનો અને હાજરી પત્રક તૈયાર રાખો.`;
-        actionLabel = 'રિપોર્ટ ચકાસો';
-      } else {
-        responseText = `🚨 Supervision Alert:\nAnganwadi Supervisor Smt. Shardaben Shah is arriving tomorrow at 11:00 AM for inspection at 04 Vadtal Centre.\nPlease ensure stock registers, meal photos, and attendance books are up to date.`;
-        actionLabel = 'Review Reports';
-      }
+      responseText = `🚨 સુપરવિઝન ચેતવણી:\nમુખ્ય સેવિકા શ્રીમતી શારદાબેન શાહ આવતીકાલે સવારે ૧૧:૦૦ વાગ્યે આંગણવાડી કેન્દ્ર ૦૪ વડતાલની નિરીક્ષણ મુલાકાતે આવી રહ્યા છે.\nમહેરબાની કરીને સ્ટોક રજીસ્ટર, ભોજનનો ફોટો અને વિદ્યાર્થી માસિક હાજરી પત્રક તૈયાર રાખો.`;
+      actionLabel = 'ડાઉનલોડ રિપોર્ટ પેજ ખોલો';
       actionScreen = 'download-report';
     }
 
-    // 8. Stock Inward / Received
-    else if (
-      q.includes('received') ||
-      q.includes('inward') ||
-      q.includes('challan') ||
-      q.includes('batch') ||
-      q.includes('આવક') ||
-      q.includes('ચલણ') ||
-      q.includes('બેચ')
-    ) {
-      if (isGujarati) {
-        responseText = `સ્ટોક આવક રજીસ્ટર:\nનવા માલની એન્ટ્રી માટે સ્ટોક આવક સ્ક્રીન ખોલી રહ્યા છીએ. ત્યાં દરેક વસ્તુનો બેચ નંબર અને એક્સપાયરી તારીખ દાખલ કરી શકો છો.`;
-        actionLabel = 'સ્ટોક આવક ખોલો';
-      } else {
-        responseText = `Stock Received Register:\nOpening the Stock Inward screen where you can record new stock supplies with individual batch numbers, challan numbers, and expiry dates.`;
-        actionLabel = 'Open Stock Received';
-      }
-      actionScreen = 'stock-received';
-    }
-
-    // 9. Stock Usage / Distribution
-    else if (
-      q.includes('usage') ||
-      q.includes('consume') ||
-      q.includes('distribut') ||
-      q.includes('વપરાશ') ||
-      q.includes('વિતરણ')
-    ) {
-      if (isGujarati) {
-        responseText = `દૈનિક સ્ટોક વપરાશ:\nબાળકોના ભોજન અને લાભાર્થીઓને રેશન વિતરણની નોંધ કરવા સ્ટોક વપરાશ સ્ક્રીન ઉપલબ્ધ છે.`;
-        actionLabel = 'સ્ટોક વપરાશ ખોલો';
-      } else {
-        responseText = `Stock Usage Register:\nOpening the Stock Usage screen to record daily food consumption and beneficiary ration distribution.`;
-        actionLabel = 'Open Stock Usage';
-      }
-      actionScreen = 'stock-usage';
-    }
-
-    // 10. Download Report
+    // =========================================================================
+    // 10. DOWNLOAD REPORT (રિપોર્ટ ડાઉનલોડ વિકલ્પો)
+    // =========================================================================
     else if (
       q.includes('report') ||
       q.includes('download') ||
@@ -454,17 +584,14 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       q.includes('રિપોર્ટ') ||
       q.includes('ડાઉનલોડ')
     ) {
-      if (isGujarati) {
-        responseText = `સત્તાવાર માસિક રિપોર્ટ:\nતમે ચોક્કસ સમય, બેચ નંબર અને આંગણવાડી સેતુ આપ-લે (Inter-AWC Transfer) સાથે માન્ય A4 સાઈઝ PDF અને CSV ડાઉનલોડ કરી શકો છો.`;
-        actionLabel = 'રિપોર્ટ ડાઉનલોડ પેજ';
-      } else {
-        responseText = `Official Monthly Report:\nYou can download standard A4 size PDF and CSV with exact generation timestamp, individual item batch numbers, and Inter-AWC Setu Share exchanges.`;
-        actionLabel = 'Open Download Report';
-      }
+      responseText = `સત્તાવાર અહેવાલ ડાઉનલોડ સેક્શન:\nતમે ૩ વિકલ્પોમાંથી પસંદ કરીને માન્ય A4 સાઈઝ PDF અથવા CSV ડાઉનલોડ કરી શકો છો:\n૧. સંપૂર્ણ ડેટા અહેવાલ (ઇન્વેન્ટરી, બેચ અને માસિક હાજરી)\n૨. માત્ર સ્ટોક ઇન્વેન્ટરી અહેવાલ\n૩. માત્ર વિદ્યાર્થી માસિક હાજરી અહેવાલ\n\nદરેક રિપોર્ટમાં ચોક્કસ સમય અને સરકારી સહીઓ સામેલ છે.`;
+      actionLabel = 'રિપોર્ટ ડાઉનલોડ પેજ પર જાઓ';
       actionScreen = 'download-report';
     }
 
-    // 11. Setu Share Exchange
+    // =========================================================================
+    // 11. SETU SHARE EXCHANGE (સેતુ શેર આપ-લે)
+    // =========================================================================
     else if (
       q.includes('share') ||
       q.includes('exchange') ||
@@ -473,58 +600,16 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       q.includes('શેર') ||
       q.includes('આપ-લે')
     ) {
-      if (isGujarati) {
-        responseText = `સેતુ શેર એક્સચેન્જ:\nનજીકની આંગણવાડી સાથે અનાજ કે તેલની આપ-લે કરવા માટે સેતુ શેર સ્ક્રીન ખોલી રહ્યા છીએ.`;
-        actionLabel = 'સેતુ શેર એક્સચેન્જ ખોલો';
-      } else {
-        responseText = `Setu Share Exchange:\nOpening the Inter-AWC transfer module where you can record emergency stock exchanges with nearby Anganwadi centres.`;
-        actionLabel = 'Open Setu Share';
-      }
+      responseText = `સેતુ શેર એક્સચેન્જ:\nનજીકના આંગણવાડી કેન્દ્ર સાથે ઈમરજન્સી રાશનની આપ-લે કરવા માટે સેતુ શેર મોડ્યુલ તૈયાર છે. સુપરવાઈઝર પિન #8491 સાથે તમામ વ્યવહારો સત્તાવાર રીતે વેરિફાઇ થાય છે.`;
+      actionLabel = 'સેતુ શેર એક્સચેન્જ ખોલો';
       actionScreen = 'setu-share';
     }
 
-    // 12. Smart Ration
-    else if (
-      q.includes('ration') ||
-      q.includes('smart') ||
-      q.includes('રેશન') ||
-      q.includes('સ્માર્ટ')
-    ) {
-      if (isGujarati) {
-        responseText = `સ્માર્ટ રેશન:\nધાત્રી માતાઓ, સગર્ભા બહેનો અને કિશોરીઓ માટે પૌષ્ટિક આહાર વિતરણ કિટનું આયોજન કરો.`;
-        actionLabel = 'સ્માર્ટ રેશન ખોલો';
-      } else {
-        responseText = `Smart Ration:\nPlan take-home ration kits for pregnant women, lactating mothers, and adolescent girls.`;
-        actionLabel = 'Open Smart Ration';
-      }
-      actionScreen = 'smart-ration';
-    }
-
-    // 13. Meal Photo
-    else if (
-      q.includes('photo') ||
-      q.includes('camera') ||
-      q.includes('picture') ||
-      q.includes('ફોટો') ||
-      q.includes('કેમેરા')
-    ) {
-      if (isGujarati) {
-        responseText = `ભોજન ફોટો અપલોડ:\nઆજના તાજા રાંધેલા ભોજનનો ફોટો જીઓ-ટેગ સાથે અપલોડ કરો.`;
-        actionLabel = 'ફોટો અપલોડ ખોલો';
-      } else {
-        responseText = `Meal Photo Upload:\nCapture and upload today's hot cooked meal plate with geo-timestamp verification.`;
-        actionLabel = 'Open Meal Photo';
-      }
-      actionScreen = 'meal-photo';
-    }
-
-    // 14. Default / Greeting
+    // =========================================================================
+    // 12. DEFAULT GUJARATI HELP
+    // =========================================================================
     else {
-      if (isGujarati) {
-        responseText = `હું તમારી મદદ માટે હાજર છું. તમે નીચેનામાંથી કોઈ એક પ્રશ્ન પૂછી શકો છો:\n૧. "આજનો ખોરાક શું છે?"\n૨. "ચોખા અને તેલનો સ્ટોક કેટલો છે?"\n૩. "વિદ્યાર્થીઓની હાજરી કેટલી છે?"\n૪. "સુપરવિઝન એલર્ટ બતાવો"`;
-      } else {
-        responseText = `I'm here to assist you! Try asking:\n1. "What is today's meal menu?"\n2. "How much rice and oil stock is remaining?"\n3. "Show student attendance"\n4. "Check supervision alert"`;
-      }
+      responseText = `હું તમારી મદદ માટે હંમેશા હાજર છું ભાવનાબેન! તમે નીચે મુજબ પૂછી શકો છો:\n• "ચોખા ૨૫ કિલો આવક નોંધો" (અથવા તેલ ૧૦ લિટર)\n• "ચોખા અને તેલનો સ્ટોક કેટલો છે?"\n• "આજનું ભોજન મેનુ શું છે?"\n• "વિદ્યાર્થીઓની હાજરી કેટલી છે?"\n• "સુપરવિઝન મુલાકાત વિશે જણાવો"\n• "સત્તાવાર રિપોર્ટ ડાઉનલોડ કરો"`;
     }
 
     // Add assistant response to history
@@ -534,185 +619,228 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
       text: responseText,
       actionScreen,
       actionLabel,
+      inwardSuccess: inwardRecord,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     setMessages((prev) => [...prev, assistantMessage]);
 
-    // Speak aloud the assistant message
-    speakText(responseText, isGujarati ? 'gu-IN' : 'en-IN');
+    // Speak aloud in Gujarati
+    speakText(responseText, 'gu-IN');
   };
 
-  // Quick suggestion chips
+  // Quick Gujarati suggestion chips
   const quickPrompts = [
     {
-      label: lang === 'gu' ? '🍲 આજનો ખોરાક' : "🍲 Today's Food Menu",
-      query: lang === 'gu' ? 'આજનો ખોરાક શું છે?' : "What is today's food menu?"
+      label: '📥 ચોખા ૨૫ કિ.ગ્રા. આવક',
+      query: 'ચોખા ૨૫ કિલો આવક આવી'
     },
     {
-      label: lang === 'gu' ? '🌾 ચોખા & તેલ સ્ટોક' : '🌾 Rice & Oil Stock',
-      query: lang === 'gu' ? 'ચોખા અને તેલનો બાકી સ્ટોક કેટલો છે?' : 'What is the stock balance of rice and oil?'
+      label: '🛢️ તેલ ૧૦ લિટર આવક',
+      query: 'તેલ ૧૦ લિટર આવક આવી'
     },
     {
-      label: lang === 'gu' ? '👶 બાલ શક્તિ સ્ટોક' : '👶 Bal Shakti Stock',
-      query: lang === 'gu' ? 'બાલ શક્તિ સ્ટોક કેટલો છે?' : 'How many packets of Bal Shakti are left?'
+      label: '📦 ચોખાનો સ્ટોક કેટલો?',
+      query: 'ચોખાનો સ્ટોક કેટલો છે?'
     },
     {
-      label: lang === 'gu' ? '📋 વિદ્યાર્થી હાજરી' : '📋 Student Attendance',
-      query: lang === 'gu' ? 'વિદ્યાર્થીઓની હાજરી કેટલી છે?' : 'What is the student attendance today?'
+      label: '🍲 આજનું ભોજન મેનુ',
+      query: 'આજનું ભોજન મેનુ શું છે?'
     },
     {
-      label: lang === 'gu' ? '🚨 સુપરવિઝન એલર્ટ' : '🚨 Supervision Alert',
-      query: lang === 'gu' ? 'સુપરવિઝન મુલાકાત વિશે માહિતી આપો' : 'Tell me about the supervision inspection visit'
+      label: '👶 વિદ્યાર્થીઓની હાજરી',
+      query: 'વિદ્યાર્થીઓની હાજરી કેટલી છે?'
     },
     {
-      label: lang === 'gu' ? '📄 રિપોર્ટ ડાઉનલોડ' : '📄 Download Report',
-      query: lang === 'gu' ? 'રિપોર્ટ ડાઉનલોડ કરો' : 'Download monthly report'
+      label: '🚨 સુપરવિઝન ચેતવણી',
+      query: 'સુપરવિઝન મુલાકાત ક્યારે છે?'
     },
     {
-      label: lang === 'gu' ? '📦 સ્ટોક આવક' : '📦 Stock Received',
-      query: lang === 'gu' ? 'સ્ટોક આવક રજીસ્ટર ખોલો' : 'Open stock received register'
+      label: '📄 રિપોર્ટ ડાઉનલોડ',
+      query: 'રિપોર્ટ ડાઉનલોડ કરવો છે'
+    },
+    {
+      label: '🥣 બાલ શક્તિ પેકેટ્સ',
+      query: 'બાલ શક્તિ પેકેટ કેટલા છે?'
     }
   ];
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="w-full max-w-[420px] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] h-[640px] border border-slate-200/90 animate-in slide-in-from-bottom-6 duration-200">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 text-white px-4 py-3.5 flex items-center justify-between shadow-md">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
+      <div className="w-full max-w-lg bg-[#F8FAF9] rounded-t-[32px] sm:rounded-[32px] shadow-2xl flex flex-col h-[90vh] sm:h-[650px] max-h-[92vh] overflow-hidden border border-emerald-300/40">
+        {/* Top Header Bar */}
+        <div className="px-5 py-3.5 bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 text-white flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center ring-2 ring-white/30 text-emerald-200 shadow-inner">
-              <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+            <div className="w-9 h-9 rounded-2xl bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/20">
+              <Bot className="w-5 h-5 text-emerald-100" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h3 className="font-bold text-base tracking-tight leading-tight">
-                  {lang === 'gu' ? 'પોષણ વાણી' : 'Poshan Vani'}
-                </h3>
-                <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-emerald-500/40 text-emerald-100 border border-emerald-300/30">
-                  {lang === 'gu' ? 'અવાજ સહાયક' : 'Voice Assistant'}
+                <h3 className="font-black text-sm tracking-tight">પોષણ વાણી</h3>
+                <span className="text-[10px] bg-emerald-500/30 text-emerald-100 font-bold px-2 py-0.2 rounded-full border border-emerald-300/30">
+                  ગુજરાતી AI
                 </span>
               </div>
-              <p className="text-[11px] text-emerald-100/90 leading-tight">
-                {lang === 'gu'
-                  ? 'આંગણવાડી કાર્યકર અવાજ સેવા • AWVAD04'
-                  : 'Anganwadi Worker Voice Assistant • AWVAD04'}
+              <p className="text-[11px] text-emerald-100/90 font-medium">
+                આંગણવાડી અવાજ સહાયક • સ્ટોક આવક અને હાજરી
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* Audio Speech Mute / Unmute Button */}
-            {isSpeaking && (
-              <button
-                onClick={stopSpeaking}
-                className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/30 text-amber-200 hover:bg-amber-500/40 border border-amber-300/40 text-[11px] font-semibold transition-all animate-pulse"
-                title="Stop audio playback"
-              >
-                <VolumeX className="w-3.5 h-3.5" />
-                <span>Stop</span>
-              </button>
-            )}
-
-            {/* Language toggle inside assistant */}
+            {/* Audio Toggle */}
             <button
               onClick={() => {
-                const nextLang = lang === 'en' ? 'gu' : 'en';
-                onLanguageChange(nextLang);
-                setActiveSpeechLang(nextLang === 'gu' ? 'gu-IN' : 'en-IN');
+                if (isSpeaking) stopSpeaking();
+                setAudioEnabled(!audioEnabled);
               }}
-              className="px-2 py-1 bg-white/15 hover:bg-white/25 rounded-full text-[11px] font-bold text-white border border-white/20 transition-colors"
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                audioEnabled
+                  ? 'bg-white/15 text-white hover:bg-white/25'
+                  : 'bg-rose-500/30 text-rose-200 hover:bg-rose-500/40'
+              }`}
+              title={audioEnabled ? 'અવાજ બંધ કરો' : 'અવાજ ચાલુ કરો'}
             >
-              {lang === 'en' ? 'ગુજરાતી' : 'English'}
+              {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
 
-            {/* Close */}
+            {/* Close Button */}
             <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/90 transition-colors cursor-pointer"
+              onClick={() => {
+                stopSpeaking();
+                onClose();
+              }}
+              className="w-8 h-8 rounded-full bg-white/15 text-white hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 stroke-[2.5]" />
             </button>
           </div>
         </div>
 
-        {/* Conversation Stream */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-[#F8FAF8]">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+        {/* Live Speaking Indicator Banner */}
+        {isSpeaking && (
+          <div className="px-4 py-2 bg-emerald-100/90 border-b border-emerald-200 flex items-center justify-between text-xs text-emerald-950 font-bold animate-pulse">
+            <div className="flex items-center gap-2">
+              <Volume2 className="w-4 h-4 text-emerald-700 animate-bounce" />
+              <span>પોષણ વાણી બોલી રહ્યું છે...</span>
+            </div>
+            <button
+              onClick={stopSpeaking}
+              className="text-[11px] text-emerald-800 underline hover:text-emerald-950 cursor-pointer"
             >
-              {msg.sender === 'assistant' && (
-                <div className="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs shrink-0 mt-0.5 shadow-xs">
-                  <Bot className="w-4 h-4" />
-                </div>
-              )}
+              રોકો
+            </button>
+          </div>
+        )}
 
+        {/* Chat History Container */}
+        <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-gradient-to-b from-white to-[#F4FAF4]">
+          {messages.map((msg) => {
+            const isUser = msg.sender === 'user';
+            return (
               <div
-                className={`max-w-[82%] rounded-2xl p-3 text-xs leading-relaxed shadow-xs ${
-                  msg.sender === 'user'
-                    ? 'bg-emerald-600 text-white rounded-br-xs font-medium'
-                    : 'bg-white text-slate-800 rounded-bl-xs border border-slate-200/80 shadow-2xs'
-                }`}
+                key={msg.id}
+                className={`flex gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}
               >
-                <p className="whitespace-pre-line">{msg.text}</p>
-
-                {/* Optional Action Button Trigger */}
-                {msg.actionScreen && (
-                  <button
-                    onClick={() => {
-                      if (msg.actionScreen) {
-                        onNavigate(msg.actionScreen);
-                        onClose();
-                      }
-                    }}
-                    className="mt-2.5 w-full flex items-center justify-between px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl border border-emerald-200 transition-colors group cursor-pointer text-[11px]"
-                  >
-                    <span>{msg.actionLabel || 'Go to screen'}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
-                  </button>
+                {!isUser && (
+                  <div className="w-7 h-7 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0 mt-1 shadow-2xs">
+                    <Bot className="w-4 h-4" />
+                  </div>
                 )}
 
                 <div
-                  className={`mt-1.5 flex items-center justify-between text-[10px] ${
-                    msg.sender === 'user' ? 'text-emerald-100' : 'text-slate-400'
+                  className={`max-w-[85%] rounded-2xl p-3.5 text-xs shadow-xs space-y-2 ${
+                    isUser
+                      ? 'bg-[#15803D] text-white rounded-br-xs font-medium'
+                      : 'bg-white text-slate-800 border border-slate-200/80 rounded-bl-xs'
                   }`}
                 >
-                  <span>{msg.timestamp}</span>
-                  {msg.sender === 'assistant' && (
+                  <p className="whitespace-pre-line leading-relaxed text-[12.5px] font-medium">
+                    {msg.text}
+                  </p>
+
+                  {/* Stock Inward Confirmation Card */}
+                  {msg.inwardSuccess && (
+                    <div className="mt-2 p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1.5 text-emerald-950">
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-800">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>સ્ટોક આવક સત્તાવાર રજીસ્ટર થઈ ગઈ છે!</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5 text-[11px] pt-1">
+                        <div className="bg-white p-1.5 rounded-lg border border-emerald-100">
+                          <span className="text-slate-500 block text-[9.5px]">આવક જથ્થો</span>
+                          <span className="font-bold text-emerald-700">
+                            +{msg.inwardSuccess.quantity} {msg.inwardSuccess.unit}
+                          </span>
+                        </div>
+                        <div className="bg-white p-1.5 rounded-lg border border-emerald-100">
+                          <span className="text-slate-500 block text-[9.5px]">નવો સ્ટોક</span>
+                          <span className="font-bold text-slate-900">
+                            {msg.inwardSuccess.newTotal} {msg.inwardSuccess.unit}
+                          </span>
+                        </div>
+                        <div className="bg-white p-1.5 rounded-lg border border-emerald-100 col-span-2">
+                          <span className="text-slate-500 block text-[9.5px]">બેચ & એક્સપાયરી</span>
+                          <span className="font-mono font-bold text-slate-800">
+                            {msg.inwardSuccess.batchNo} • Exp: {msg.inwardSuccess.expiryDate}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Direct Screen Navigation Button */}
+                  {msg.actionScreen && (
                     <button
-                      onClick={() => speakText(msg.text)}
-                      className="flex items-center gap-1 hover:text-emerald-700 transition-colors ml-2 cursor-pointer"
-                      title="Speak response"
+                      onClick={() => {
+                        stopSpeaking();
+                        onClose();
+                        onNavigate(msg.actionScreen!);
+                      }}
+                      className="mt-2 w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 border border-emerald-200 rounded-xl text-emerald-800 font-bold text-xs flex items-center justify-between transition-colors shadow-2xs cursor-pointer"
                     >
-                      <Volume2 className="w-3 h-3" />
-                      <span>{lang === 'gu' ? 'સાંભળો' : 'Listen'}</span>
+                      <span>{msg.actionLabel || 'સ્ક્રીન ખોલો'}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   )}
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] opacity-60">{msg.timestamp}</span>
+                    {!isUser && (
+                      <button
+                        onClick={() => speakText(msg.text, 'gu-IN')}
+                        className="text-[10px] text-emerald-700 hover:text-emerald-900 flex items-center gap-1 font-bold cursor-pointer"
+                      >
+                        <Volume2 className="w-3 h-3" />
+                        <span>સાંભળો</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {isUser && (
+                  <div className="w-7 h-7 rounded-xl bg-slate-800 text-white flex items-center justify-center shrink-0 mt-1 shadow-2xs">
+                    <User className="w-4 h-4" />
+                  </div>
+                )}
               </div>
+            );
+          })}
 
-              {msg.sender === 'user' && (
-                <div className="w-7 h-7 rounded-full bg-slate-700 text-white flex items-center justify-center text-xs shrink-0 mt-0.5 shadow-xs">
-                  <User className="w-4 h-4" />
-                </div>
-              )}
-            </div>
-          ))}
-
-          {/* Active Listening Waveform or Transcript Indicator */}
+          {/* Listening Live Waveform Card */}
           {isListening && (
-            <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl animate-pulse">
-              <div className="w-4 h-4 rounded-full bg-emerald-600 animate-ping shrink-0" />
+            <div className="p-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-400 rounded-2xl flex items-center gap-3 animate-pulse shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                <Mic className="w-4 h-4 animate-ping" />
+              </div>
               <div className="flex-1">
-                <p className="text-xs font-bold text-emerald-800">
-                  {lang === 'gu' ? 'સાંભળી રહ્યા છીએ... બોલો' : 'Listening... Speak now'}
-                </p>
-                <p className="text-xs text-emerald-950 font-medium italic mt-0.5">
-                  {transcript || (lang === 'gu' ? 'તમારો અવાજ કેપ્ચર થઈ રહ્યો છે...' : 'Waiting for voice input...')}
+                <span className="font-bold text-xs text-emerald-950 block">
+                  ગુજરાતીમાં સાંભળી રહ્યું છે...
+                </span>
+                <p className="text-[11px] text-emerald-800 italic">
+                  {transcript || 'બોલો: જેમ કે "ચોખા ૨૫ કિલો આવક", "તેલનો સ્ટોક કેટલો છે?"...'}
                 </p>
               </div>
             </div>
@@ -721,94 +849,74 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
           <div ref={chatEndRef} />
         </div>
 
-        {/* Quick Suggestion Pills */}
-        <div className="px-3 pt-2 pb-1.5 bg-white border-t border-slate-100">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 px-1">
-            {lang === 'gu' ? 'ઝડપી અવાજ પ્રશ્નો (ટેપ કરો):' : 'Quick Voice Queries (Tap to ask):'}
-          </p>
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-            {quickPrompts.map((item, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleProcessQuery(item.query)}
-                className="whitespace-nowrap px-2.5 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-200 border border-slate-200 text-slate-700 text-[11px] font-semibold transition-all shrink-0 cursor-pointer shadow-2xs"
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+        {/* Quick Suggestion Chips (All in Gujarati) */}
+        <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 flex gap-2 overflow-x-auto scrollbar-none">
+          {quickPrompts.map((p, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleProcessQuery(p.query)}
+              className="py-1.5 px-3 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-full text-xs font-bold text-slate-700 hover:text-emerald-900 whitespace-nowrap transition-all shadow-2xs cursor-pointer shrink-0"
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
 
-        {/* Interactive Bottom Control Bar */}
-        <div className="p-3 bg-white border-t border-slate-200/80">
-          {/* Main Voice Activation Area */}
-          <div className="flex items-center gap-2">
-            {/* Input field for typing query */}
+        {/* Input & Microphone Control Bar */}
+        <div className="p-3 bg-white border-t border-slate-200 space-y-2">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (textInput.trim()) {
+                handleProcessQuery(textInput.trim());
+              }
+            }}
+            className="flex items-center gap-2"
+          >
+            {/* Primary Gujarati Voice Mic Button */}
+            <button
+              type="button"
+              onClick={toggleListening}
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all cursor-pointer shadow-md shrink-0 ${
+                isListening
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white animate-bounce'
+                  : 'bg-[#15803D] hover:bg-[#166534] text-white'
+              }`}
+              title={isListening ? 'સાંભળવાનું બંધ કરો' : 'ગુજરાતીમાં બોલો'}
+            >
+              {isListening ? (
+                <MicOff className="w-5 h-5" />
+              ) : (
+                <Mic className="w-5 h-5 stroke-[2.3]" />
+              )}
+            </button>
+
+            {/* Text Input with Gujarati Placeholder */}
             <div className="flex-1 relative">
               <input
                 type="text"
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleProcessQuery(textInput);
-                  }
-                }}
-                placeholder={
-                  lang === 'gu'
-                    ? 'અહીં લખો અથવા માઇક પર બોલો...'
-                    : 'Type a question or tap mic...'
-                }
-                className="w-full pl-3 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 transition-all font-medium"
+                placeholder="ગુજરાતીમાં લખો (દા.ત. ચોખા ૨૫ કિલો આવક)..."
+                className="w-full h-12 pl-3.5 pr-10 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-emerald-600 focus:bg-white text-slate-900 placeholder:text-slate-400 font-medium"
               />
-              {textInput.trim() && (
-                <button
-                  onClick={() => handleProcessQuery(textInput)}
-                  className="absolute right-1.5 top-1.5 w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 transition-colors cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <button
+                type="submit"
+                disabled={!textInput.trim()}
+                className={`absolute right-2 top-2.5 w-7 h-7 rounded-xl flex items-center justify-center transition-colors ${
+                  textInput.trim()
+                    ? 'bg-emerald-700 text-white cursor-pointer hover:bg-emerald-800'
+                    : 'text-slate-300'
+                }`}
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
             </div>
+          </form>
 
-            {/* Glowing Microphone Button */}
-            <button
-              onClick={toggleListening}
-              className={`relative flex items-center justify-center w-11 h-11 rounded-full font-bold transition-all shadow-md cursor-pointer ${
-                isListening
-                  ? 'bg-red-600 text-white ring-4 ring-red-400/50 scale-105 animate-pulse'
-                  : 'bg-gradient-to-tr from-emerald-700 to-teal-600 hover:from-emerald-800 hover:to-teal-700 text-white ring-2 ring-emerald-500/30'
-              }`}
-              title={
-                isListening
-                  ? 'Stop listening'
-                  : lang === 'gu'
-                  ? 'બોલવા માટે ટેપ કરો'
-                  : 'Tap to speak'
-              }
-            >
-              {isListening ? (
-                <MicOff className="w-5 h-5 animate-spin" />
-              ) : (
-                <Mic className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-
-          {/* Subtext info */}
-          <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-500 px-1">
-            <span>
-              {isListening
-                ? lang === 'gu'
-                  ? 'સાંભળી રહ્યા છીએ... ટેપ કરીને પૂર્ણ કરો'
-                  : 'Listening... Tap mic when finished'
-                : lang === 'gu'
-                ? 'સપોર્ટ: ગુજરાતી & English'
-                : 'Supports: English & Gujarati'}
-            </span>
-            <span className="font-semibold text-emerald-700 flex items-center gap-1">
-              <CheckCircle2 className="w-2.5 h-2.5" /> Poshan Setu AI
-            </span>
+          <div className="flex items-center justify-between text-[10.5px] text-slate-500 px-1 font-medium">
+            <span>🎤 અવાજ ભાષા: <strong>ગુજરાતી (gu-IN)</strong></span>
+            <span>✓ સ્ટોક આવક & હાજરી ઓટો-સિન્ક</span>
           </div>
         </div>
       </div>

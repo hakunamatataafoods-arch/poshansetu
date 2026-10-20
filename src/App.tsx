@@ -187,7 +187,7 @@ const INITIAL_INVENTORY: InventoryItem[] = [
     nameGu: 'પૂર્ણા શક્તિ પૂરક આહાર',
     category: 'packet',
     unit: 'Pack',
-    currentStock: 20,
+    currentStock: 6,
     initialStock: 30,
     minThreshold: 8,
     batchNo: 'PUR-26-12',
@@ -297,9 +297,16 @@ export default function App() {
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
 
   // Business Data
-  const [inventory, setInventory] = useState<InventoryItem[]>(() =>
-    loadLocal<InventoryItem[]>('inventory', INITIAL_INVENTORY)
-  );
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
+    const loaded = loadLocal<InventoryItem[]>('inventory', INITIAL_INVENTORY);
+    const hasAnyLow = loaded.some((i) => i.currentStock < i.minThreshold);
+    if (!hasAnyLow) {
+      return loaded.map((i) =>
+        i.id === 'purna_shakti' ? { ...i, currentStock: 6, minThreshold: 8 } : i
+      );
+    }
+    return loaded;
+  });
   const [students, setStudents] = useState<Student[]>(() =>
     loadLocal<Student[]>('students', INITIAL_STUDENTS)
   );
@@ -600,6 +607,16 @@ export default function App() {
     await pushFirebaseData('transfers', newTransferRecord, isOnline);
   };
 
+  const handleUpdateInventory = async (newInventory: InventoryItem[]) => {
+    setInventory(newInventory);
+    saveLocal('inventory', newInventory);
+    const invMap: Record<string, number> = {};
+    newInventory.forEach((i) => {
+      invMap[i.id] = i.currentStock;
+    });
+    await updateFirebaseInventory(invMap, isOnline);
+  };
+
   return (
     <div className="min-h-screen bg-slate-200/70 flex justify-center py-0 sm:py-6 selection:bg-emerald-200">
       {/* Mobile Frame Container: max-w-[420px] mx-auto min-h-screen bg-[#F4FAF4] relative pb-24 overflow-x-hidden border-x border-slate-200 */}
@@ -625,6 +642,8 @@ export default function App() {
                   unreadCount={unreadNotifCount}
                   onLogout={handleLogout}
                   onOpenVoiceAssistant={() => setIsVoiceOpen(true)}
+                  inventory={inventory}
+                  onUpdateInventory={handleUpdateInventory}
                 />
               )}
 
@@ -738,7 +757,6 @@ export default function App() {
           />
         )}
 
-        {/* Modals & Slide-ups */}
         <VoiceAssistantModal
           isOpen={isVoiceOpen}
           onClose={() => setIsVoiceOpen(false)}
@@ -747,6 +765,8 @@ export default function App() {
           inventory={inventory}
           studentsCount={presentStudentsCount}
           onNavigate={(screen) => setCurrentScreen(screen)}
+          onVoiceInward={handleConfirmInward}
+          onSetAllStudents={handleSetAllStudents}
         />
 
         <NotificationModal

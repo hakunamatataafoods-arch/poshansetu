@@ -13,8 +13,9 @@ import {
   SmartRationIllustration,
   DownloadReportIllustration
 } from '../components/GridCardIllustrations';
-import { Language } from '../types';
+import { InventoryItem, Language } from '../types';
 import { translations } from '../data/translations';
+import { LowStockAlertWidget } from '../components/LowStockAlertWidget';
 
 interface HomeScreenProps {
   onNavigate: (screen: string) => void;
@@ -26,6 +27,8 @@ interface HomeScreenProps {
   unreadCount: number;
   onLogout?: () => void;
   onOpenVoiceAssistant?: () => void;
+  inventory?: InventoryItem[];
+  onUpdateInventory?: (newInventory: InventoryItem[]) => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -37,7 +40,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onOpenNotifications,
   unreadCount,
   onLogout,
-  onOpenVoiceAssistant
+  onOpenVoiceAssistant,
+  inventory = [],
+  onUpdateInventory
 }) => {
   const t = translations[lang];
   const [langMenuOpen, setLangMenuOpen] = useState(false);
@@ -267,6 +272,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </button>
         </div>
       </div>
+
+      {/* 2.5 High-Priority Low Stock Alert Widget */}
+      <LowStockAlertWidget
+        inventory={inventory}
+        lang={lang}
+        onNavigate={onNavigate}
+        onUpdateInventory={onUpdateInventory}
+      />
 
       {/* 3. 3x3 Illustrated Grid (Matching the exact card layout, rounded-3xl, and styling) */}
       <div className="grid grid-cols-3 gap-2.5 sm:gap-3 pt-0.5">
