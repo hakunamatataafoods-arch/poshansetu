@@ -11,7 +11,8 @@ import {
   StudentAttendanceIllustration,
   MealPhotoIllustration,
   SmartRationIllustration,
-  DownloadReportIllustration
+  DownloadReportIllustration,
+  BillUploadIllustration
 } from '../components/GridCardIllustrations';
 import { InventoryItem, Language } from '../types';
 import { translations } from '../data/translations';
@@ -31,6 +32,7 @@ interface HomeScreenProps {
   onOpenProfile?: () => void;
   inventory?: InventoryItem[];
   onUpdateInventory?: (newInventory: InventoryItem[]) => void;
+  claimsCount?: number;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -45,12 +47,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onOpenVoiceAssistant,
   onOpenProfile,
   inventory = [],
-  onUpdateInventory
+  onUpdateInventory,
+  claimsCount = 3
 }) => {
   const t = translations[lang];
   const [langMenuOpen, setLangMenuOpen] = useState(false);
 
-  // 9 Cards matching the screenshot layout and color scheme
+  // Cards matching the layout and color scheme
   const gridCards = [
     {
       id: 'stock-received',
@@ -123,6 +126,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       bg: 'bg-[#FFF7ED]',
       border: 'border-orange-100/70',
       screen: 'download-report'
+    },
+    {
+      id: 'bill-reimbursement',
+      title: t.billReimbursement,
+      illustration: BillUploadIllustration,
+      bg: 'bg-gradient-to-r from-[#EAF7EE] via-[#E2F4E7] to-[#DCFCE7]',
+      border: 'border-emerald-300/90',
+      screen: 'bill-reimbursement'
     }
   ];
 
@@ -300,6 +311,49 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       <div className="grid grid-cols-3 gap-2.5 sm:gap-3 pt-0.5">
         {gridCards.map((card) => {
           const Illustration = card.illustration;
+          const isFullWidth = card.id === 'bill-reimbursement';
+
+          if (isFullWidth) {
+            return (
+              <button
+                key={card.id}
+                onClick={() => onNavigate(card.screen)}
+                className={`col-span-3 ${card.bg} ${card.border} border-2 rounded-3xl p-3 sm:p-3.5 flex items-center justify-between transition-all duration-200 active:scale-[0.98] hover:shadow-md shadow-xs cursor-pointer group`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Illustration className="w-full h-full" />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-700 text-white text-[9.5px] font-black uppercase tracking-wider">
+                        {lang === 'gu' ? 'નવું ફીચર' : 'New Feature'}
+                      </span>
+                      <span className="text-[10.5px] font-bold text-emerald-800">
+                        {lang === 'gu' ? 'સીધા ખાતામાં ભરપાઈ' : 'Govt DBT Refund'}
+                      </span>
+                    </div>
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
+                      {lang === 'gu' ? 'સ્થાનિક ખરીદી બિલ અપલોડ અને ભરપાઈ' : 'Local Purchase Bill Upload & Reimbursement'}
+                    </h3>
+                    <p className="text-[11px] text-slate-600 truncate mt-0.5">
+                      {lang === 'gu'
+                        ? 'શાકભાજી, મસાલા, ગેસ સિલિન્ડરનું બિલ જોડો'
+                        : 'Upload receipt for vegetables, spices, LPG cylinder'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pl-2 shrink-0">
+                  <span className="px-3 py-1.5 rounded-xl bg-[#15803D] group-hover:bg-[#166534] text-white text-xs font-bold shadow-2xs flex items-center gap-1 transition-colors">
+                    <span>{lang === 'gu' ? 'બિલ અપલોડ' : 'Upload'}</span>
+                    <span>→</span>
+                  </span>
+                </div>
+              </button>
+            );
+          }
+
           return (
             <button
               key={card.id}

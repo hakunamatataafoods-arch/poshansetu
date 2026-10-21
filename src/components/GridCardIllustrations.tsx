@@ -430,3 +430,61 @@ export const DownloadReportIllustration: React.FC<{ className?: string }> = ({ c
     </g>
   </svg>
 );
+
+export const BillUploadIllustration: React.FC<{ className?: string }> = ({ className = 'w-full h-full' }) => (
+  <svg viewBox="0 0 160 130" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    {/* Ground Shadow */}
+    <ellipse cx="80" cy="116" rx="58" ry="7" fill="#E2E8F0" />
+
+    {/* Receipt / Invoice Slip */}
+    <g id="bill-receipt">
+      {/* Bill Paper with Jagged / Perforated Bottom */}
+      <path
+        d="M44 24H106C109.3 24 112 26.7 112 30V98L104 93L96 98L88 93L80 98L72 93L64 98L56 93L48 98L40 93V30C40 26.7 42.7 24 44 24Z"
+        fill="#FFFFFF"
+        stroke="#94A3B8"
+        strokeWidth="2"
+      />
+      {/* Header Band on Receipt */}
+      <rect x="44" y="28" width="64" height="12" rx="2" fill="#EAF7EE" />
+      <line x1="52" y1="34" x2="84" y2="34" stroke="#15803D" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="98" cy="34" r="2.5" fill="#15803D" />
+
+      {/* Bill Items Rows */}
+      <line x1="48" y1="48" x2="78" y2="48" stroke="#64748B" strokeWidth="2" strokeLinecap="round" />
+      <line x1="88" y1="48" x2="104" y2="48" stroke="#0F172A" strokeWidth="2" strokeLinecap="round" />
+
+      <line x1="48" y1="56" x2="72" y2="56" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="88" y1="56" x2="104" y2="56" stroke="#0F172A" strokeWidth="2" strokeLinecap="round" />
+
+      <line x1="48" y1="64" x2="68" y2="64" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="88" y1="64" x2="104" y2="64" stroke="#0F172A" strokeWidth="2" strokeLinecap="round" />
+
+      {/* Dashed Separator */}
+      <line x1="46" y1="72" x2="106" y2="72" stroke="#CBD5E1" strokeWidth="1.5" strokeDasharray="3 2" />
+
+      {/* Rupee Symbol & Total Row */}
+      <text x="50" y="84" fill="#047857" fontSize="11" fontWeight="bold" fontFamily="sans-serif">₹ 450</text>
+      <rect x="84" y="76" width="22" height="10" rx="3" fill="#DCFCE7" />
+      <path d="M88 81L91 84L97 78" stroke="#16A34A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </g>
+
+    {/* Camera Snap Badge for Photo Attachment */}
+    <g id="camera-badge">
+      <circle cx="118" cy="46" r="17" fill="#EA580C" stroke="#FFFFFF" strokeWidth="2.5" />
+      {/* Camera Body */}
+      <rect x="108" y="40" width="20" height="14" rx="2.5" fill="#FFFFFF" />
+      {/* Camera Flash Top Bump */}
+      <path d="M114 40L115 38H121L122 40H114Z" fill="#FFFFFF" />
+      {/* Camera Lens */}
+      <circle cx="118" cy="47" r="4.2" fill="#EA580C" />
+      <circle cx="119" cy="46" r="1.3" fill="#FFFFFF" />
+    </g>
+
+    {/* Verified Reimbursed Stamp */}
+    <g id="stamp" transform="rotate(-12 60 78)">
+      <rect x="42" y="70" width="34" height="15" rx="3" fill="#FEF3C7" stroke="#D97706" strokeWidth="1.2" opacity="0.9" />
+      <text x="45" y="81" fill="#B45309" fontSize="7" fontWeight="bold" fontFamily="sans-serif">PAID / ભરપાઈ</text>
+    </g>
+  </svg>
+);

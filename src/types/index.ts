@@ -97,6 +97,39 @@ export interface InterAwcTransferRecord {
   authorizedBy: string;
 }
 
+export interface ExpenseClaimRecord {
+  id: string;
+  date: string;
+  timestamp: string;
+  invoiceNumber: string;
+  category:
+    | 'vegetables'
+    | 'spices'
+    | 'gas'
+    | 'fruits'
+    | 'cleaning'
+    | 'repairs'
+    | 'stationery'
+    | 'emergency_food'
+    | 'other';
+  categoryLabelEn: string;
+  categoryLabelGu: string;
+  itemName: string;
+  vendorName: string;
+  vendorContact?: string;
+  amount: number;
+  paymentMode: 'cash' | 'upi' | 'bank_transfer';
+  billPhotoUrl: string;
+  remarks: string;
+  workerName: string;
+  workerBankName: string;
+  workerAccountLast4: string;
+  awcCode: string;
+  status: 'submitted' | 'approved_by_supervisor' | 'credited_to_bank' | 'rejected';
+  utrNumber?: string;
+  approvedDate?: string;
+}
+
 export interface NotificationItem {
   id: string;
   title: string;

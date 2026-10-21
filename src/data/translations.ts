@@ -50,6 +50,9 @@ export const translations = {
     smartRationSingle: "Smart Ration",
     downloadReport: "Download\nReport",
     downloadReportSingle: "Download Report",
+    billReimbursement: "Bill Upload &\nReimbursement",
+    billReimbursementSingle: "Bill Upload & Reimbursement",
+    workerManual: "Worker Manual (PDF)",
 
     // Meal Usage Screen
     mealUsageTitle: "Meal Usage Entry",
@@ -172,6 +175,9 @@ export const translations = {
     smartRationSingle: "સ્માર્ટ રેશન",
     downloadReport: "રિપોર્ટ\nડાઉનલોડ",
     downloadReportSingle: "રિપોર્ટ ડાઉનલોડ",
+    billReimbursement: "બિલ અપલોડ &\nભરપાઈ",
+    billReimbursementSingle: "બિલ અપલોડ અને ભરપાઈ",
+    workerManual: "કાર્યકર માર્ગદર્શિકા (PDF)",
 
     // Meal Usage Screen
     mealUsageTitle: "ભોજન વપરાશ નોંધણી",
