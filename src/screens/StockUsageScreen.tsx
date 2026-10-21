@@ -19,6 +19,7 @@ import {
 import { PoshanSetuLogo } from '../components/PoshanSetuLogo';
 import { Language, InventoryItem } from '../types';
 import { translations } from '../data/translations';
+import { playTransactionSuccessSound, playTransactionErrorSound } from '../utils/audioEffects';
 
 interface StockUsageScreenProps {
   onBack: () => void;
@@ -136,6 +137,7 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
 
     // Increasing: Check if stock is completely 0 (Out of stock)
     if (availableStock <= 0) {
+      playTransactionErrorSound();
       setAlertNotification({
         isOpen: true,
         type: 'out_of_stock',
@@ -155,6 +157,7 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
     // Increasing: Check if selecting beyond available stock
     const nextQty = currentQty + delta;
     if (nextQty > availableStock) {
+      playTransactionErrorSound();
       setAlertNotification({
         isOpen: true,
         type: 'limit_exceeded',
@@ -183,6 +186,7 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
 
   const handleConfirm = async () => {
     if (!selectedBeneficiary) {
+      playTransactionErrorSound();
       setAlertNotification({
         isOpen: true,
         type: 'validation_error',
@@ -199,6 +203,7 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
     }
 
     if (totalDeductedUnits <= 0) {
+      playTransactionErrorSound();
       setAlertNotification({
         isOpen: true,
         type: 'validation_error',
@@ -220,6 +225,7 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
       const stock = getItemStock(item.invId);
 
       if (selected > 0 && stock <= 0) {
+        playTransactionErrorSound();
         setAlertNotification({
           isOpen: true,
           type: 'out_of_stock',
@@ -237,6 +243,7 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
       }
 
       if (selected > stock) {
+        playTransactionErrorSound();
         setAlertNotification({
           isOpen: true,
           type: 'limit_exceeded',
@@ -275,8 +282,10 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
         remaining: remainingStock
       });
 
+      playTransactionSuccessSound();
       setSuccess(true);
     } catch (err) {
+      playTransactionErrorSound();
       console.error(err);
     } finally {
       setSubmitting(false);

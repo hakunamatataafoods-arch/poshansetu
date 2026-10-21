@@ -21,6 +21,7 @@ import {
 import { PoshanSetuLogo } from '../components/PoshanSetuLogo';
 import { Language, MealMaterialItem, InventoryItem } from '../types';
 import { translations } from '../data/translations';
+import { playTransactionSuccessSound, playTransactionErrorSound } from '../utils/audioEffects';
 
 interface MealUsageScreenProps {
   onBack: () => void;
@@ -280,6 +281,7 @@ export const MealUsageScreen: React.FC<MealUsageScreenProps> = ({
   // Submit Handler
   const handleConfirm = async () => {
     if (totalMealGm <= 0) {
+      playTransactionErrorSound();
       alert(lang === 'gu' ? 'કૃપા કરીને સામગ્રીનો જથ્થો દાખલ કરો.' : 'Please enter valid ingredient grams.');
       return;
     }
@@ -289,6 +291,7 @@ export const MealUsageScreen: React.FC<MealUsageScreenProps> = ({
       const invItem = inventory.find((i) => i.id === mat.id);
       if (invItem) {
         if (invItem.currentStock <= 0) {
+          playTransactionErrorSound();
           alert(
             lang === 'gu'
               ? `સ્ટોક ખાલી ચેતવણી: ${mat.nameGu} નો સ્ટોક ખાલી (૦ ${invItem.unit}) છે! વિતરણ કરી શકાતું નથી.`
@@ -297,6 +300,7 @@ export const MealUsageScreen: React.FC<MealUsageScreenProps> = ({
           return;
         }
         if (mat.totalKg > invItem.currentStock) {
+          playTransactionErrorSound();
           alert(
             lang === 'gu'
               ? `સ્ટોક મર્યાદા ચેતવણી: ${mat.nameGu} માટે જરૂરી જથ્થો (${mat.totalKg} kg) કેન્દ્રમાં ઉપલબ્ધ સ્ટોક (${invItem.currentStock} kg) કરતાં વધારે છે!`
@@ -338,9 +342,11 @@ export const MealUsageScreen: React.FC<MealUsageScreenProps> = ({
         workerNote: workerNote.trim()
       });
 
+      playTransactionSuccessSound();
       setSuccess(true);
     } catch (err) {
       console.error(err);
+      playTransactionErrorSound();
     } finally {
       setSubmitting(false);
     }

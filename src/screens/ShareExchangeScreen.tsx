@@ -3,6 +3,7 @@ import { ArrowLeft, Repeat, ShieldCheck, KeyRound, CheckCircle2, ArrowRightLeft,
 import { PoshanSetuLogo } from '../components/PoshanSetuLogo';
 import { Language } from '../types';
 import { translations } from '../data/translations';
+import { playTransactionSuccessSound, playTransactionErrorSound } from '../utils/audioEffects';
 
 interface ShareExchangeScreenProps {
   onBack: () => void;
@@ -42,7 +43,9 @@ export const ShareExchangeScreen: React.FC<ShareExchangeScreenProps> = ({
   const handleVerify = () => {
     if (inputCode.trim() === '8491') {
       setIsVerified(true);
+      playTransactionSuccessSound();
     } else {
+      playTransactionErrorSound();
       alert(lang === 'en' ? 'Invalid code! The authorized transfer OTP is #8491' : 'અમાન્ય કોડ! સત્તાવાર ટ્રાન્સફર OTP #8491 છે');
     }
   };
@@ -58,7 +61,11 @@ export const ShareExchangeScreen: React.FC<ShareExchangeScreenProps> = ({
         verificationCode: '#8491',
         action: transferType
       });
+      playTransactionSuccessSound();
       setCompleted(true);
+    } catch (err) {
+      console.error(err);
+      playTransactionErrorSound();
     } finally {
       setSubmitting(false);
     }

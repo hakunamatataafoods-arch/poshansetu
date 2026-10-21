@@ -741,8 +741,8 @@ export default function App() {
           )}
         </div>
 
-        {/* Floating Voice Assistant Trigger (Only when authenticated) */}
-        {isAuthenticated && (
+        {/* Floating Voice Assistant Trigger (Only when authenticated and not on report preview) */}
+        {isAuthenticated && currentScreen !== 'download-report' && (
           <button
             onClick={() => setIsVoiceOpen(true)}
             className="fixed bottom-21 right-4 sm:right-[calc(50%-190px)] z-40 flex items-center gap-2 pl-3 pr-3.5 py-2 rounded-full bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-700 text-white shadow-lg shadow-emerald-950/20 hover:shadow-xl hover:from-emerald-800 hover:to-teal-800 active:scale-95 transition-all cursor-pointer border border-emerald-400/40 group"

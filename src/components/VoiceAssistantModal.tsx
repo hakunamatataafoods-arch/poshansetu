@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Language, InventoryItem, InwardItemDetail } from '../types';
 import { translations } from '../data/translations';
+import { playTransactionSuccessSound } from '../utils/audioEffects';
 
 interface VoiceAssistantModalProps {
   isOpen: boolean;
@@ -418,6 +419,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
             }
           ]
         });
+        playTransactionSuccessSound();
       }
 
       const currentQty = targetItem?.currentStock ?? 0;

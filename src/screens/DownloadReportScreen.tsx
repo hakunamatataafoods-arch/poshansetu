@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { PoshanSetuLogo } from '../components/PoshanSetuLogo';
+import { PoshanSetuLogo, PoshanSetuEmblem } from '../components/PoshanSetuLogo';
 import { InventoryItem, StockInwardRecord, InterAwcTransferRecord, Student, Language } from '../types';
 import { translations } from '../data/translations';
 import { getMonthlyAttendanceRecord, OCTOBER_2026_DATES } from '../data/monthlyAttendance';
@@ -1030,32 +1030,36 @@ export const DownloadReportScreen: React.FC<DownloadReportScreenProps> = ({
       {/* ==================================================================== */}
       {/* Complete A4 Sheet Document Preview (Displays Selected Report) */}
       {/* ==================================================================== */}
-      <div className="bg-white rounded-3xl p-4.5 border border-slate-200/90 shadow-sm space-y-4 text-slate-900 text-xs">
+      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-4 text-slate-900 text-xs overflow-hidden">
         {/* Gujarat Government Official Header with Logos */}
-        <div className="border-b-2 border-emerald-800 pb-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-[#EAF7EE] border border-emerald-300 flex items-center justify-center p-1 shrink-0">
-                <PoshanSetuLogo size="compact" />
+        <div className="border-b-2 border-emerald-800/90 pb-3.5 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-50 border-2 border-emerald-600/70 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-2xs">
+                <PoshanSetuEmblem className="w-8 h-8" />
               </div>
-              <div className="text-left">
-                <span className="text-[9px] font-black uppercase tracking-widest text-emerald-800 block">
+              <div className="text-left min-w-0">
+                <span className="text-[9.5px] font-black uppercase tracking-wider text-emerald-800 block leading-tight truncate">
                   Government of Gujarat • ICDS
                 </span>
-                <span className="text-xs font-black text-slate-900 block">
+                <span className="text-xs font-black text-slate-900 block leading-tight mt-0.5 truncate">
                   પોષણ સેતુ • PoshanSetu Official Ledger
+                </span>
+                <span className="text-[9px] font-semibold text-slate-500 block leading-tight mt-0.5 truncate">
+                  AWC 04 Vadtal (AWVAD04) • Taluka Anand
                 </span>
               </div>
             </div>
-            <div className="text-right">
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+            <div className="text-right shrink-0">
+              <span className="inline-flex items-center gap-1.5 text-[9.5px] font-black px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
                 Certified A4 MPR
               </span>
             </div>
           </div>
 
-          <div className="text-center pt-1 space-y-1">
-            <h2 className="text-sm font-black text-slate-900 tracking-tight leading-tight">
+          <div className="text-center pt-1 space-y-1.5">
+            <h2 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight leading-snug px-1">
               {reportScope === 'full' &&
                 'PoshanSetu (પોષણ સેતુ) • Comprehensive Anganwadi Ledger & Attendance (Form MPR-6)'}
               {reportScope === 'inventory' &&

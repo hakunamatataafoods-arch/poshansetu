@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle2, XCircle, Users, ArrowRight, ShieldCheck, Home,
 import { PoshanSetuLogo } from '../components/PoshanSetuLogo';
 import { Student, Language } from '../types';
 import { translations } from '../data/translations';
+import { playTransactionSuccessSound } from '../utils/audioEffects';
 
 interface AttendanceScreenProps {
   onBack: () => void;
@@ -27,6 +28,7 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({
   const attendanceRate = Math.round((presentCount / students.length) * 100);
 
   const handleSubmitAttendance = () => {
+    playTransactionSuccessSound();
     setSubmitted(true);
   };
 

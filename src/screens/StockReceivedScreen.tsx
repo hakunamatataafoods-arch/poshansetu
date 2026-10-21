@@ -3,6 +3,7 @@ import { ArrowLeft, Truck, CheckCircle2, Plus, Minus, FileCheck, Calendar, Hash,
 import { PoshanSetuLogo } from '../components/PoshanSetuLogo';
 import { Language, InwardItemDetail } from '../types';
 import { translations } from '../data/translations';
+import { playTransactionSuccessSound, playTransactionErrorSound } from '../utils/audioEffects';
 
 interface StockReceivedScreenProps {
   onBack: () => void;
@@ -97,6 +98,18 @@ export const StockReceivedScreen: React.FC<StockReceivedScreenProps> = ({
   };
 
   const handleConfirm = async () => {
+    if (!challanNo.trim()) {
+      playTransactionErrorSound();
+      alert(lang === 'gu' ? 'કૃપા કરીને ચલણ નંબર દાખલ કરો.' : 'Please enter Challan Number.');
+      return;
+    }
+    const hasValidItems = items.some((i) => i.quantity > 0);
+    if (!hasValidItems) {
+      playTransactionErrorSound();
+      alert(lang === 'gu' ? 'કૃપા કરીને ઓછામાં ઓછી ૧ સામગ્રીનો જથ્થો દાખલ કરો.' : 'Please enter quantity for at least one item.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await onConfirmInward({
@@ -105,7 +118,10 @@ export const StockReceivedScreen: React.FC<StockReceivedScreenProps> = ({
         supplier,
         items
       });
+      playTransactionSuccessSound();
       setSuccess(true);
+    } catch (err) {
+      playTransactionErrorSound();
     } finally {
       setSubmitting(false);
     }

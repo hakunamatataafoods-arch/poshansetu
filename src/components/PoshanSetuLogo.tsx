@@ -4,12 +4,14 @@ interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'compact';
   showTagline?: boolean;
   className?: string;
+  iconOnly?: boolean;
 }
 
 export const PoshanSetuLogo: React.FC<LogoProps> = ({
   size = 'md',
   showTagline = false,
-  className = ''
+  className = '',
+  iconOnly = false
 }) => {
   const iconSizes = {
     compact: 'w-7 h-7',
@@ -25,17 +27,13 @@ export const PoshanSetuLogo: React.FC<LogoProps> = ({
     lg: 'text-3xl'
   };
 
-  return (
-    <div className={`flex flex-col items-center ${className}`}>
-      <div className="flex items-center gap-2">
-        {/* Emblem SVG */}
-        <div className={`${iconSizes[size]} shrink-0 transition-transform hover:scale-105`}>
-          <svg
-            viewBox="0 0 100 100"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-full drop-shadow-xs"
-          >
+  const emblemSvg = (
+    <svg
+      viewBox="0 0 100 100"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-full drop-shadow-xs"
+    >
             {/* Top Leaves */}
             <path
               d="M32 20C26 22 20 30 22 38C30 38 38 30 38 22C38 20 35 19 32 20Z"
@@ -113,6 +111,22 @@ export const PoshanSetuLogo: React.FC<LogoProps> = ({
             <ellipse cx="50" cy="77" rx="4.5" ry="5" fill="#FFFFFF" />
             <ellipse cx="62" cy="77" rx="3.5" ry="4" fill="#FFFFFF" />
           </svg>
+  );
+
+  if (iconOnly) {
+    return (
+      <div className={`shrink-0 flex items-center justify-center overflow-hidden ${className || iconSizes[size]}`}>
+        {emblemSvg}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex flex-col items-center ${className}`}>
+      <div className="flex items-center gap-2">
+        {/* Emblem SVG */}
+        <div className={`${iconSizes[size]} shrink-0 transition-transform hover:scale-105 overflow-hidden flex items-center justify-center`}>
+          {emblemSvg}
         </div>
 
         {/* Wordmark */}
@@ -127,6 +141,51 @@ export const PoshanSetuLogo: React.FC<LogoProps> = ({
           Healthy Children, Empowered India
         </span>
       )}
+    </div>
+  );
+};
+
+export const PoshanSetuEmblem: React.FC<{ className?: string }> = ({ className = 'w-8 h-8' }) => {
+  return (
+    <div className={`shrink-0 flex items-center justify-center overflow-hidden ${className}`}>
+      <svg
+        viewBox="0 0 100 100"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full h-full object-contain"
+      >
+        {/* Top Leaves */}
+        <path d="M32 20C26 22 20 30 22 38C30 38 38 30 38 22C38 20 35 19 32 20Z" fill="#529E2F" />
+        <path d="M68 18C74 20 80 28 78 36C70 36 62 28 62 20C62 18 65 17 68 18Z" fill="#529E2F" />
+        <path d="M20 36C16 38 14 44 17 48C23 48 27 42 27 36C27 34 22 34 20 36Z" fill="#1B7A38" />
+        <path d="M80 34C84 36 86 42 83 46C77 46 73 40 73 34C73 32 78 32 80 34Z" fill="#1B7A38" />
+
+        {/* Central Saffron Figure (Mother/Guardian/Youth) */}
+        <circle cx="52" cy="19" r="6.5" fill="#E85D04" />
+        <path d="M40 9C38 15 44 26 50 33C56 40 59 48 53 58C50 63 47 62 47 62C52 56 57 46 51 38C45 30 36 21 38 11C38.5 9 39.5 9 40 9Z" fill="#E85D04" />
+        <path d="M49 32C52 38 58 46 54 59C51 59 46 54 44 47C42 41 46 35 49 32Z" fill="#F97316" />
+
+        {/* Left Child Figure (Boy in Forest Green) */}
+        <circle cx="36" cy="42" r="5" fill="#15803D" />
+        <path d="M27 44C27 44 32 48 35 52C33 55 33 61 33 63C38 61 41 55 40 52C43 47 47 41 47 41C44 43 40 48 37 48C34 48 30 44 27 44Z" fill="#15803D" />
+
+        {/* Right Child Figure (Girl in Lime Green with Pigtails) */}
+        <circle cx="68" cy="45" r="4.8" fill="#65A30D" />
+        <path d="M62 42C59 42 59 45 61 47C63 47 64 45 63 43Z" fill="#65A30D" />
+        <path d="M74 43C77 43 78 46 76 48C74 48 73 46 74 43Z" fill="#65A30D" />
+        <path d="M59 46C59 46 64 50 66 54C68 57 66 63 66 63C69 61 72 57 71 54C73 50 77 45 77 45C75 47 72 50 69 50C66 50 62 46 59 46Z" fill="#65A30D" />
+
+        {/* Base Leaves Flanking the Bridge */}
+        <path d="M8 65C18 64 33 69 40 76C29 77 17 73 8 65Z" fill="#529E2F" />
+        <path d="M92 65C82 64 67 69 60 76C71 77 83 73 92 65Z" fill="#529E2F" />
+
+        {/* Arch Bridge Structure (Setu) */}
+        <path d="M26 77C33 68 67 68 74 77V80C68 78 32 78 26 80V77Z" fill="#15803D" />
+        <path d="M28 77C30 65 70 65 72 77H67C65 71 60 70 56 73C54 75 54 77 54 77H46C46 77 46 75 44 73C40 70 35 71 33 77H28Z" fill="#166534" />
+        <ellipse cx="38" cy="77" rx="3.5" ry="4" fill="#FFFFFF" />
+        <ellipse cx="50" cy="77" rx="4.5" ry="5" fill="#FFFFFF" />
+        <ellipse cx="62" cy="77" rx="3.5" ry="4" fill="#FFFFFF" />
+      </svg>
     </div>
   );
 };
