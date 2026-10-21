@@ -6,6 +6,7 @@ import { HelpModal } from './components/HelpModal';
 import { CentreDetailsModal } from './components/CentreDetailsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { VoiceAssistantModal } from './components/VoiceAssistantModal';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 import { HomeScreen } from './screens/HomeScreen';
 import { LoginScreen } from './screens/LoginScreen';
@@ -630,6 +631,9 @@ export default function App() {
     <div className="min-h-screen bg-slate-200/70 flex justify-center py-0 sm:py-6 selection:bg-emerald-200">
       {/* Mobile Frame Container: max-w-[420px] mx-auto min-h-screen bg-[#F4FAF4] relative pb-24 overflow-x-hidden border-x border-slate-200 */}
       <main className="w-full max-w-[420px] mx-auto min-h-screen bg-[#F4FAF4] relative pb-24 overflow-x-hidden border-x border-slate-200/80 shadow-2xl flex flex-col">
+        {/* Offline Status Warning Banner */}
+        <OfflineIndicator lang={lang} forcedOffline={!isOnline} />
+
         {/* Screen Routing */}
         <div className="flex-1">
           {!isAuthenticated ? (

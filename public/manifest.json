@@ -1,20 +1,30 @@
 {
+  "id": "/",
   "short_name": "PoshanSetu",
-  "name": "PoshanSetu (પોષણ સેતુ) - Anganwadi Worker App",
-  "description": "Daily meal usage, stock distribution, and pantry inventory tracking for Anganwadi Workers",
+  "name": "PoshanSetu (પોષણ સેતુ) - Anganwadi App",
+  "description": "Official Anganwadi offline-first application for stock inventory, daily meal usage, beneficiary distributions, and attendance.",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/pwa-192x192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/pwa-512x512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
   "start_url": "/",
+  "scope": "/",
   "background_color": "#F4FAF4",
   "theme_color": "#15803D",
   "display": "standalone",

@@ -10,6 +10,12 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#15803D" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="PoshanSetu" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="manifest" href="/manifest.json" />
 
     <!-- Google Fonts: Plus Jakarta Sans & Noto Sans Gujarati -->
@@ -24,21 +30,5 @@
   <body class="bg-slate-100 font-sans antialiased selection:bg-emerald-200 selection:text-emerald-900">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      // Clear any legacy service worker cache to ensure immediate live updates
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-          for (const registration of registrations) {
-            registration.unregister();
-          }
-        });
-        if ('caches' in window) {
-          caches.keys().then((names) => {
-            for (const name of names) caches.delete(name);
-          });
-        }
-      }
-    </script>
   </body>
 </html>
-

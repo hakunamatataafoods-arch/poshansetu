@@ -27,6 +27,7 @@ import {
 import { Language } from '../types';
 import { getOfflineQueueCount, syncOfflineQueue } from '../services/firebase';
 import workerAvatar from '../assets/images/bhavnaben_patel_avatar_1792406640270.jpg';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -573,6 +574,21 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     {syncMsg}
                   </p>
                 )}
+              </div>
+
+              {/* Offline PWA Mobile Installation */}
+              <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200/90 space-y-2">
+                <div>
+                  <span className="text-xs font-black text-slate-900 block">
+                    {lang === 'en' ? '📱 Mobile App & 100% Offline Access' : '📱 મોબાઇલ એપ અને ૧૦૦% ઑફલાઇન ઉપયોગ'}
+                  </span>
+                  <span className="text-[11px] text-slate-600 block mt-0.5">
+                    {lang === 'en'
+                      ? 'Install on your Android or iPhone to use completely without internet.'
+                      : 'ઇન્ટરનેટ વગર પણ કામ કરવા માટે એપ તમારા ફોનમાં ઇન્સ્ટોલ કરો.'}
+                  </span>
+                </div>
+                <PWAInstallButton lang={lang} variant="button" />
               </div>
 
               {/* Language Switcher */}

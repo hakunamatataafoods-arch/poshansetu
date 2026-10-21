@@ -16,6 +16,7 @@ import {
 import { InventoryItem, Language } from '../types';
 import { translations } from '../data/translations';
 import { LowStockAlertWidget } from '../components/LowStockAlertWidget';
+import { PWAInstallButton } from '../components/PWAInstallButton';
 
 interface HomeScreenProps {
   onNavigate: (screen: string) => void;
@@ -283,6 +284,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </button>
         </div>
       </div>
+
+      {/* PWA 1-Tap Offline Install Banner */}
+      <PWAInstallButton lang={lang} variant="banner" />
 
       {/* 2.5 High-Priority Low Stock Alert Widget */}
       <LowStockAlertWidget
