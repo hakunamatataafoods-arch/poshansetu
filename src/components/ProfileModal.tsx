@@ -157,21 +157,24 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           {activeSubTab === 'profile' && (
             <>
               {/* Worker Identity Card with Real Profile Picture */}
-              <div className="relative overflow-hidden bg-gradient-to-br from-[#EAF7EE] via-[#F4FAF4] to-[#E3F5E7] rounded-3xl p-4.5 border border-emerald-200 shadow-xs">
-                {/* Government Stamp Watermark */}
-                <div className="absolute top-2 right-2 text-right">
-                  <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100/80 text-emerald-800 border border-emerald-300">
-                    ICDS GUJARAT
+              <div className="bg-gradient-to-br from-[#EAF7EE] via-[#F4FAF4] to-[#E3F5E7] rounded-3xl p-4 border border-emerald-200/90 shadow-2xs space-y-3">
+                {/* Top Badge Row */}
+                <div className="flex items-center justify-between border-b border-emerald-200/60 pb-2">
+                  <span className="text-[10px] font-bold text-emerald-800 bg-white/90 px-2 py-0.5 rounded-md border border-emerald-200">
+                    AWW Code: AWW-GJ-0401
+                  </span>
+                  <span className="text-[9.5px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-700 text-white shadow-2xs">
+                    ICDS GUJARAT • VERIFIED
                   </span>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3.5">
                   {/* Real Profile Picture with Verified Ring */}
                   <div className="relative shrink-0">
                     <button
                       type="button"
                       onClick={() => setShowPhotoViewer(true)}
-                      className="w-20 h-20 rounded-2xl overflow-hidden bg-white border-2 border-emerald-500 shadow-md flex items-center justify-center cursor-pointer group hover:opacity-95 transition-all relative"
+                      className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-white border-2 border-emerald-500 shadow-md flex items-center justify-center cursor-pointer group hover:opacity-95 transition-all relative"
                       title={lang === 'en' ? 'Click to view photo' : 'ફોટો મોટો જોવા ક્લિક કરો'}
                     >
                       <img
@@ -193,24 +196,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   </div>
 
                   {/* Name & Official Designation */}
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 space-y-0.5">
                     <h4 className="font-extrabold text-slate-900 text-base leading-tight truncate">
                       {lang === 'en' ? 'Shrimati Bhavnaben Patel' : 'શ્રીમતી ભાવનાબેન પટેલ'}
                     </h4>
-                    <p className="text-xs text-emerald-800 font-bold mt-0.5">
+                    <p className="text-xs text-emerald-800 font-bold leading-tight">
                       {lang === 'en'
                         ? 'Senior Anganwadi Worker (Grade I)'
                         : 'મુખ્ય આંગણવાડી કાર્યકર (ગ્રેડ ૧)'}
                     </p>
-                    <p className="text-[11px] text-slate-600 font-medium mt-0.5 flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-emerald-700 shrink-0" />
-                      <span>04-Vadtal Centre • Anand</span>
+                    <p className="text-[11px] text-slate-600 font-medium flex items-center gap-1 pt-0.5">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                      <span className="truncate">04-Vadtal Centre • Anand</span>
                     </p>
-                    <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                      <span className="text-[10px] font-bold bg-white text-emerald-900 px-2 py-0.5 rounded-md border border-emerald-200">
-                        AWW Code: AWW-GJ-0401
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>

@@ -19,6 +19,8 @@ import { AttendanceScreen } from './screens/AttendanceScreen';
 import { MealPhotoScreen } from './screens/MealPhotoScreen';
 import { SmartRationScreen } from './screens/SmartRationScreen';
 import { DownloadReportScreen } from './screens/DownloadReportScreen';
+import { BillUploadScreen } from './screens/BillUploadScreen';
+import { INITIAL_EXPENSE_CLAIMS } from './data/initialExpenseClaims';
 
 import {
   InventoryItem,
@@ -27,7 +29,8 @@ import {
   Language,
   StockInwardRecord,
   InterAwcTransferRecord,
-  InwardItemDetail
+  InwardItemDetail,
+  ExpenseClaimRecord
 } from './types';
 import {
   initFirebaseRTDB,
@@ -322,6 +325,9 @@ export default function App() {
   const [transfers, setTransfers] = useState<InterAwcTransferRecord[]>(() =>
     loadLocal<InterAwcTransferRecord[]>('transfers', INITIAL_TRANSFERS)
   );
+  const [expenseClaims, setExpenseClaims] = useState<ExpenseClaimRecord[]>(() =>
+    loadLocal<ExpenseClaimRecord[]>('expenseClaims', INITIAL_EXPENSE_CLAIMS)
+  );
 
   // Initialize Firebase RTDB on mount
   useEffect(() => {
@@ -346,12 +352,33 @@ export default function App() {
   }, [transfers]);
 
   useEffect(() => {
+    saveLocal('expenseClaims', expenseClaims);
+  }, [expenseClaims]);
+
+  useEffect(() => {
     saveLocal('lang', lang);
   }, [lang]);
 
   useEffect(() => {
     saveLocal('isOnline', isOnline);
   }, [isOnline]);
+
+  const handleAddExpenseClaim = (newClaim: ExpenseClaimRecord) => {
+    setExpenseClaims((prev) => [newClaim, ...prev]);
+    setNotifications((prev) => [
+      {
+        id: 'clm-' + Date.now(),
+        title: 'Local Purchase Bill Claim Submitted',
+        titleGu: 'સ્થાનિક ખરીદી બિલ સબમિટ થયેલ',
+        message: `Claim ${newClaim.id} for ₹${newClaim.amount} (${newClaim.itemName}) submitted for CDPO reimbursement.`,
+        messageGu: `રૂ. ${newClaim.amount} નું બિલ #${newClaim.invoiceNumber} (${newClaim.itemName}) ભરપાઈ માટે સીડીપીઓ કચેરીને મોકલાયેલ છે.`,
+        time: 'Just now',
+        read: false,
+        type: 'info'
+      },
+      ...prev
+    ]);
+  };
 
   const unreadNotifCount = notifications.filter((n) => !n.read).length;
   const presentStudentsCount = students.filter((s) => s.present).length;
@@ -658,6 +685,17 @@ export default function App() {
                   onOpenProfile={() => setIsProfileOpen(true)}
                   inventory={inventory}
                   onUpdateInventory={handleUpdateInventory}
+                  claimsCount={expenseClaims.length}
+                />
+              )}
+
+              {(currentScreen === 'bill-upload' || currentScreen === 'bill-reimbursement') && (
+                <BillUploadScreen
+                  onBack={() => setCurrentScreen('home')}
+                  lang={lang}
+                  claims={expenseClaims}
+                  onAddClaim={handleAddExpenseClaim}
+                  isOnline={isOnline}
                 />
               )}
 
@@ -745,8 +783,8 @@ export default function App() {
           )}
         </div>
 
-        {/* Floating Voice Assistant Trigger (Only when authenticated and not on report preview) */}
-        {isAuthenticated && currentScreen !== 'download-report' && (
+        {/* Floating Voice Assistant Trigger (Only when authenticated and not on report preview or bill upload) */}
+        {isAuthenticated && currentScreen !== 'download-report' && currentScreen !== 'bill-upload' && currentScreen !== 'bill-reimbursement' && (
           <button
             onClick={() => setIsVoiceOpen(true)}
             className="fixed bottom-21 right-4 sm:right-[calc(50%-190px)] z-40 flex items-center gap-2 pl-3 pr-3.5 py-2 rounded-full bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-700 text-white shadow-lg shadow-emerald-950/20 hover:shadow-xl hover:from-emerald-800 hover:to-teal-800 active:scale-95 transition-all cursor-pointer border border-emerald-400/40 group"

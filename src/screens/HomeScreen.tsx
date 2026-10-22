@@ -234,33 +234,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       {/* 2. Worker Profile Card (Clickable to open Anganwadi Worker Profile) */}
       <div
         onClick={onOpenProfile}
-        className="bg-[#EAF7EE] hover:bg-[#e2f4e7] border border-emerald-200/60 hover:border-emerald-300 rounded-3xl p-3 sm:p-3.5 flex items-center justify-between shadow-2xs cursor-pointer transition-all active:scale-[0.99] group"
+        className="bg-[#EAF7EE] hover:bg-[#e2f4e7] border border-emerald-200/80 hover:border-emerald-300 rounded-3xl p-3 sm:p-3.5 flex items-center justify-between shadow-2xs cursor-pointer transition-all active:scale-[0.99] group"
         title={lang === 'en' ? 'Click to view Anganwadi Worker profile' : 'આંગણવાડી કાર્યકર પ્રોફાઇલ જોવા ક્લિક કરો'}
       >
         {/* Worker Avatar & Info */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-13 h-13 rounded-full overflow-hidden bg-white border-2 border-emerald-400 group-hover:border-emerald-600 shadow-xs shrink-0 flex items-center justify-center relative transition-colors">
+          <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-full overflow-hidden bg-white border-2 border-emerald-400 group-hover:border-emerald-600 shadow-xs shrink-0 flex items-center justify-center relative transition-colors">
             <img
               src={workerAvatar}
               alt={t.workerName}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform"
               onError={(e) => {
-                // Graceful fallback to initial initials if image fails
                 (e.target as HTMLElement).style.display = 'none';
               }}
             />
             {/* Fallback avatar SVG in background */}
-            <div className="absolute inset-0 -z-10 bg-[#FCE7F3] flex items-center justify-center">
+            <div className="absolute inset-0 bg-[#FCE7F3] flex items-center justify-center -z-10">
               <span className="text-xs font-bold text-pink-700">BP</span>
             </div>
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h2 className="font-bold text-slate-900 text-[14.5px] sm:text-[15.5px] tracking-tight leading-tight truncate group-hover:text-emerald-800 transition-colors">
-                {lang === 'en' ? 'Smt. BhavnaBen Patel' : 'શ્રીમતી ભાવનાબેન પટેલ'}
-              </h2>
-            </div>
-            <p className="text-[11.5px] text-slate-600 font-medium leading-none mt-1">
+            <h2 className="font-bold text-slate-900 text-[14px] sm:text-[15.5px] tracking-tight leading-snug truncate group-hover:text-emerald-800 transition-colors">
+              {lang === 'en' ? 'Smt. BhavnaBen Patel' : 'શ્રીમતી ભાવનાબેન પટેલ'}
+            </h2>
+            <p className="text-[11.5px] text-slate-600 font-medium leading-tight mt-0.5 truncate">
               {lang === 'en' ? 'Anganwadi Worker • View Profile →' : 'આંગણવાડી કાર્યકર • પ્રોફાઇલ જુઓ →'}
             </p>
           </div>
@@ -268,12 +265,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
         {/* Location & Online Status Pill */}
         <div
-          className="flex flex-col items-end gap-1.5 shrink-0 pl-2"
+          className="flex flex-col items-end justify-center gap-1.5 shrink-0 pl-2"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-1 text-[11.5px] font-bold text-slate-800">
-            <MapPin className="w-3.5 h-3.5 text-emerald-700 fill-emerald-600" />
-            <span>{lang === 'en' ? '04-Vadtal Centre' : '૦૪-વડતાલ કેન્દ્ર'}</span>
+            <MapPin className="w-3.5 h-3.5 text-emerald-700 fill-emerald-600 shrink-0" />
+            <span className="leading-tight">{lang === 'en' ? '04-Vadtal Centre' : '૦૪-વડતાલ કેન્દ્ર'}</span>
           </div>
 
           {/* Online/Offline Toggle Button */}

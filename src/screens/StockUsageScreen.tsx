@@ -84,7 +84,8 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
     bal_shakti: 18,
     matru_shakti: 24,
     purna_shakti: 6,
-    atta: 50
+    atta: 50,
+    dal: 25
   };
 
   const getItemStock = (invId: string): number => {
@@ -99,7 +100,8 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
     { key: 'Bal Shakti', invId: 'bal_shakti', label: t.balShakti, unit: t.pack },
     { key: 'Matru Shakti', invId: 'matru_shakti', label: t.matruShakti, unit: t.pack },
     { key: 'Purna Shakti', invId: 'purna_shakti', label: t.purnaShakti, unit: t.pack },
-    { key: 'Atta', invId: 'atta', label: t.atta, unit: t.kg }
+    { key: 'Atta', invId: 'atta', label: t.atta, unit: t.kg },
+    { key: 'Tuver Dal', invId: 'dal', label: t.dal, unit: t.kg }
   ];
 
   // Initialize quantities: if stock is 0, start at 0, otherwise start at 1 (or max available)
