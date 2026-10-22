@@ -668,6 +668,7 @@ export default function App() {
               onLoginSuccess={handleLoginSuccess}
               lang={lang}
               onLanguageChange={setLang}
+              onOpenHelp={() => setIsHelpOpen(true)}
             />
           ) : (
             <>
