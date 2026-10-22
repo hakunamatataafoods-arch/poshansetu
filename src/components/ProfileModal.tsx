@@ -161,10 +161,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 {/* Top Badge Row */}
                 <div className="flex items-center justify-between border-b border-emerald-200/60 pb-2">
                   <span className="text-[10px] font-bold text-emerald-800 bg-white/90 px-2 py-0.5 rounded-md border border-emerald-200">
-                    AWW Code: AWW-GJ-0401
+                    {lang === 'en' ? 'AWW Code: AWW-GJ-0401' : 'કાર્યકર કોડ: AWW-GJ-0401'}
                   </span>
                   <span className="text-[9.5px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-700 text-white shadow-2xs">
-                    ICDS GUJARAT • VERIFIED
+                    {lang === 'en' ? 'ICDS GUJARAT • VERIFIED' : 'ICDS ગુજરાત • પ્રમાણિત'}
                   </span>
                 </div>
 
@@ -183,7 +183,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">
-                        View
+                        {lang === 'en' ? 'View' : 'જુઓ'}
                       </div>
                     </button>
                     {/* UIDAI / Government Verified Check Badge */}
@@ -207,7 +207,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     </p>
                     <p className="text-[11px] text-slate-600 font-medium flex items-center gap-1 pt-0.5">
                       <MapPin className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                      <span className="truncate">04-Vadtal Centre • Anand</span>
+                      <span className="truncate">
+                        {lang === 'en' ? '04-Vadtal Centre • Anand' : '૦૪-વડતાલ કેન્દ્ર • આણંદ'}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -221,7 +223,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     {lang === 'en' ? 'Personal & Official Dates' : 'વ્યક્તિગત અને નિમણૂક વિગત'}
                   </h5>
                   <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                    Active Service
+                    {lang === 'en' ? 'Active Service' : 'સક્રિય સેવા'}
                   </span>
                 </div>
 
@@ -232,7 +234,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       {lang === 'en' ? 'Joining Date' : 'નિમણૂક તારીખ'}
                     </span>
                     <span className="font-extrabold text-slate-900 text-sm block">
-                      12 July 2014
+                      {lang === 'en' ? '12 July 2014' : '૧૨ જુલાઈ ૨૦૧૪'}
                     </span>
                     <span className="text-[10px] font-bold text-emerald-700 block">
                       {lang === 'en' ? '12+ Years Service' : '૧૨+ વર્ષની અવિરત સેવા'}
@@ -245,7 +247,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       {lang === 'en' ? 'Birth Date (DOB)' : 'જન્મ તારીખ'}
                     </span>
                     <span className="font-extrabold text-slate-900 text-sm block">
-                      15 August 1985
+                      {lang === 'en' ? '15 August 1985' : '૧૫ ઓગસ્ટ ૧૯૮૫'}
                     </span>
                     <span className="text-[10px] font-medium text-slate-500 block">
                       {lang === 'en' ? '41 Years • Female' : '૪૧ વર્ષ • સ્ત્રી'}
@@ -278,7 +280,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       {copiedPhone ? (
                         <>
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Copied</span>
+                          <span>{lang === 'en' ? 'Copied' : 'કોપી થયું'}</span>
                         </>
                       ) : (
                         <>
@@ -317,7 +319,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                         {lang === 'en' ? 'Residential Address:' : 'રહેઠાણનું સરનામું:'}
                       </span>
                       <span className="font-medium text-slate-800 leading-snug">
-                        Plot 14, Sharda Society, Near Swaminarayan Mandir, Vadtal, Taluka Anand, Gujarat - 388375
+                        {lang === 'en'
+                          ? 'Plot 14, Sharda Society, Near Swaminarayan Mandir, Vadtal, Taluka Anand, Gujarat - 388375'
+                          : 'પ્લોટ ૧૪, શારદા સોસાયટી, સ્વામિનારાયણ મંદિર પાસે, વડતાલ, તાલુકો આણંદ, ગુજરાત - ૩૮૮૩૭૫'}
                       </span>
                     </div>
                   </div>
@@ -334,7 +338,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     </span>
                   </div>
                   <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-700 text-emerald-100 rounded-full">
-                    27 Total
+                    {lang === 'en' ? '27 Total' : 'કુલ ૨૭'}
                   </span>
                 </div>
 
@@ -354,8 +358,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     className="p-2 bg-white/15 hover:bg-white/25 rounded-xl text-center transition-all cursor-pointer border border-white/20"
                   >
                     <Baby className="w-4 h-4 mx-auto text-emerald-200 mb-0.5" />
-                    <span className="text-[11px] font-bold block">Children</span>
-                    <span className="text-[9.5px] text-emerald-200 block">12 Registered</span>
+                    <span className="text-[11px] font-bold block">{lang === 'en' ? 'Children' : 'બાળકો'}</span>
+                    <span className="text-[9.5px] text-emerald-200 block">{lang === 'en' ? '12 Registered' : '૧૨ નોંધાયેલ'}</span>
                   </button>
 
                   <button
@@ -366,8 +370,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     className="p-2 bg-white/15 hover:bg-white/25 rounded-xl text-center transition-all cursor-pointer border border-white/20"
                   >
                     <Heart className="w-4 h-4 mx-auto text-pink-200 mb-0.5" />
-                    <span className="text-[11px] font-bold block">Infant</span>
-                    <span className="text-[9.5px] text-pink-200 block">9 Registered</span>
+                    <span className="text-[11px] font-bold block">{lang === 'en' ? 'Infant' : 'શિશુ'}</span>
+                    <span className="text-[9.5px] text-pink-200 block">{lang === 'en' ? '9 Registered' : '૯ નોંધાયેલ'}</span>
                   </button>
 
                   <button
@@ -378,8 +382,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     className="p-2 bg-white/15 hover:bg-white/25 rounded-xl text-center transition-all cursor-pointer border border-white/20"
                   >
                     <Users className="w-4 h-4 mx-auto text-amber-200 mb-0.5" />
-                    <span className="text-[11px] font-bold block">Pregnant</span>
-                    <span className="text-[9.5px] text-amber-200 block">6 Registered</span>
+                    <span className="text-[11px] font-bold block">{lang === 'en' ? 'Pregnant' : 'સગર્ભા'}</span>
+                    <span className="text-[9.5px] text-amber-200 block">{lang === 'en' ? '6 Registered' : '૬ નોંધાયેલ'}</span>
                   </button>
                 </div>
               </div>
@@ -396,7 +400,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     {lang === 'en' ? 'Professional Identifiers' : 'વ્યાવસાયિક વિગત અને ઓળખ'}
                   </h5>
                   <span className="text-[10px] font-semibold text-slate-500">
-                    WCD Gujarat
+                    {lang === 'en' ? 'WCD Gujarat' : 'મહિલા અને બાળ વિકાસ વિભાગ, ગુજરાત'}
                   </span>
                 </div>
 
@@ -425,7 +429,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       {lang === 'en' ? 'Aadhaar Status:' : 'આધાર સ્થિતિ:'}
                     </span>
                     <span className="font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-md text-[11px]">
-                      ✓ UIDAI Verified
+                      {lang === 'en' ? '✓ UIDAI Verified' : '✓ આધાર ચકાસાયેલ'}
                     </span>
                   </div>
 
@@ -434,7 +438,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       {lang === 'en' ? 'Sector / Beat:' : 'સેક્ટર / બીટ:'}
                     </span>
                     <span className="font-bold text-slate-800">
-                      Vadtal Beat - 02 (ICDS Anand)
+                      {lang === 'en' ? 'Vadtal Beat - 02 (ICDS Anand)' : 'વડતાલ બીટ - ૦૨ (ICDS આણંદ)'}
                     </span>
                   </div>
 
@@ -443,7 +447,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       {lang === 'en' ? 'Supervisor:' : 'સુપરવાઈઝર:'}
                     </span>
                     <span className="font-bold text-slate-800">
-                      Smt. Shardaben Shah
+                      {lang === 'en' ? 'Smt. Shardaben Shah' : 'શ્રીમતી શારદાબેન શાહ'}
                     </span>
                   </div>
 
@@ -452,7 +456,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       {lang === 'en' ? 'Affiliated CHC/PHC:' : 'જોડાયેલ આરોગ્ય કેન્દ્ર:'}
                     </span>
                     <span className="font-bold text-slate-800">
-                      Vadtal Community Health Centre
+                      {lang === 'en' ? 'Vadtal Community Health Centre' : 'વડતાલ સામુહિક આરોગ્ય કેન્દ્ર (CHC)'}
                     </span>
                   </div>
                 </div>
@@ -470,28 +474,34 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <div className="space-y-2 text-xs">
                   <div className="p-2.5 bg-slate-50 rounded-xl">
                     <span className="font-bold text-slate-900 block">
-                      B.A. (Sociology)
+                      {lang === 'en' ? 'B.A. (Sociology)' : 'બી.એ. (સમાજશાસ્ત્ર)'}
                     </span>
                     <span className="text-[11px] text-slate-500">
-                      Sardar Patel University, Vallabh Vidyanagar (2006)
+                      {lang === 'en'
+                        ? 'Sardar Patel University, Vallabh Vidyanagar (2006)'
+                        : 'સરદાર પટેલ યુનિવર્સિટી, વલ્લભ વિદ્યાનગર (૨૦૦૬)'}
                     </span>
                   </div>
 
                   <div className="p-2.5 bg-slate-50 rounded-xl">
                     <span className="font-bold text-slate-900 block">
-                      Certified ECCE Specialist
+                      {lang === 'en' ? 'Certified ECCE Specialist' : 'પ્રમાણિત ECCE નિષ્ણાત (બાળ શિક્ષણ)'}
                     </span>
                     <span className="text-[11px] text-slate-500">
-                      Early Childhood Care & Education • NIPCCD Indore (2016)
+                      {lang === 'en'
+                        ? 'Early Childhood Care & Education • NIPCCD Indore (2016)'
+                        : 'પ્રારંભિક બાળ સંભાળ અને શિક્ષણ • NIPCCD ઇન્દોર (૨૦૧૬)'}
                     </span>
                   </div>
 
                   <div className="p-2.5 bg-slate-50 rounded-xl">
                     <span className="font-bold text-slate-900 block">
-                      Infant and Young Child Feeding (IYCF) Master Trainer
+                      {lang === 'en' ? 'Infant and Young Child Feeding (IYCF) Master Trainer' : 'શિશુ અને બાળ આહાર (IYCF) માસ્ટર ટ્રેનર'}
                     </span>
                     <span className="text-[11px] text-slate-500">
-                      Health & Family Welfare Dept, Gujarat (2021)
+                      {lang === 'en'
+                        ? 'Health & Family Welfare Dept, Gujarat (2021)'
+                        : 'આરોગ્ય અને પરિવાર કલ્યાણ વિભાગ, ગુજરાત (૨૦૨૧)'}
                     </span>
                   </div>
                 </div>
@@ -506,10 +516,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
                 <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl space-y-1 text-xs">
                   <span className="font-bold text-amber-950 block">
-                    ★ Best Anganwadi Worker Award (Anand District, 2023)
+                    {lang === 'en'
+                      ? '★ Best Anganwadi Worker Award (Anand District, 2023)'
+                      : '★ શ્રેષ્ઠ આંગણવાડી કાર્યકર એવોર્ડ (આણંદ જિલ્લો, ૨૦૨૩)'}
                   </span>
                   <p className="text-[11px] text-amber-800 leading-snug">
-                    Awarded by District Collector & DDO for achieving 100% THR coverage and zero severe acute malnutrition (SAM) cases in Vadtal.
+                    {lang === 'en'
+                      ? 'Awarded by District Collector & DDO for achieving 100% THR coverage and zero severe acute malnutrition (SAM) cases in Vadtal.'
+                      : 'વડતાલમાં ૧૦૦% ટેક હોમ રાશન વિતરણ અને શૂન્ય ગંભીર કુપોષણ (SAM) સિદ્ધ કરવા બદલ જિલ્લા કલેક્ટર અને ડીડીઓ દ્વારા સન્માનિત.'}
                   </p>
                 </div>
               </div>
@@ -650,7 +664,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         {/* Modal Footer */}
         <div className="p-3.5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between">
           <span className="text-[10px] text-slate-500 font-medium">
-            POSHAN 2.0 • PoshanSetu AWW v2.4
+            {lang === 'en' ? 'POSHAN 2.0 • PoshanSetu AWW v2.4' : 'પોષણ ૨.૦ • પોષણ સેતુ AWW v૨.૪'}
           </span>
           <button
             onClick={onClose}
@@ -680,20 +694,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
             <div>
               <h4 className="font-extrabold text-slate-900 text-base">
-                Shrimati Bhavnaben Patel
+                {lang === 'en' ? 'Shrimati Bhavnaben Patel' : 'શ્રીમતી ભાવનાબેન પટેલ'}
               </h4>
               <p className="text-xs text-emerald-800 font-semibold">
-                Senior Anganwadi Worker (AWW)
+                {lang === 'en' ? 'Senior Anganwadi Worker (AWW)' : 'મુખ્ય આંગણવાડી કાર્યકર (AWW)'}
               </p>
               <span className="text-[11px] text-slate-500 block mt-0.5">
-                04 Vadtal Anganwadi Centre • ID: AWVAD04
+                {lang === 'en' ? '04 Vadtal Anganwadi Centre • ID: AWVAD04' : '૦૪ વડતાલ આંગણવાડી કેન્દ્ર • આઈડી: AWVAD04'}
               </span>
             </div>
             <button
               onClick={() => setShowPhotoViewer(false)}
               className="w-full py-2.5 bg-emerald-700 text-white font-bold text-xs rounded-xl hover:bg-emerald-800 cursor-pointer"
             >
-              Close Photo
+              {lang === 'en' ? 'Close Photo' : 'ફોટો બંધ કરો'}
             </button>
           </div>
         </div>

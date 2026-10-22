@@ -26,9 +26,9 @@ export const ShareExchangeScreen: React.FC<ShareExchangeScreenProps> = ({
   const t = translations[lang];
 
   const peerAwcList = [
-    { id: 'AWVAD02', name: 'AWC-02 Mogri (Taluka Anand)', distance: '1.2 km', worker: 'Kokilaben Parmar' },
-    { id: 'AWVAD03', name: 'AWC-03 Karamsad (Taluka Anand)', distance: '2.0 km', worker: 'Dakshaben Patel' },
-    { id: 'AWVAD05', name: 'AWC-05 Samarkha (Taluka Anand)', distance: '2.8 km', worker: 'Jyotiben Solanki' }
+    { id: 'AWVAD02', nameEn: 'AWC-02 Mogri (Taluka Anand)', nameGu: 'AWC-૦૨ મોગરી (તાલુકો આણંદ)', distance: '1.2 km', workerEn: 'Kokilaben Parmar', workerGu: 'કોકિલાબેન પરમાર' },
+    { id: 'AWVAD03', nameEn: 'AWC-03 Karamsad (Taluka Anand)', nameGu: 'AWC-૦૩ કરમસદ (તાલુકો આણંદ)', distance: '2.0 km', workerEn: 'Dakshaben Patel', workerGu: 'દક્ષાબેન પટેલ' },
+    { id: 'AWVAD05', nameEn: 'AWC-05 Samarkha (Taluka Anand)', nameGu: 'AWC-૦૫ સામરખા (તાલુકો આણંદ)', distance: '2.8 km', workerEn: 'Jyotiben Solanki', workerGu: 'જ્યોતિબેન સોલંકી' }
   ];
 
   const [selectedAwc, setSelectedAwc] = useState<string>('AWVAD02');
@@ -118,20 +118,20 @@ export const ShareExchangeScreen: React.FC<ShareExchangeScreenProps> = ({
 
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-left text-xs space-y-1.5">
             <div className="flex justify-between">
-              <span className="text-slate-500">Transaction ID:</span>
+              <span className="text-slate-500">{lang === 'en' ? 'Transaction ID:' : 'વ્યવહાર આઈડી:'}</span>
               <span className="font-mono font-bold text-slate-900">TX-AWC-8491</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Peer Centre:</span>
+              <span className="text-slate-500">{lang === 'en' ? 'Peer Centre:' : 'સામેનું કેન્દ્ર:'}</span>
               <span className="font-bold text-slate-900">{selectedAwc}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Item:</span>
+              <span className="text-slate-500">{lang === 'en' ? 'Item:' : 'સામગ્રી:'}</span>
               <span className="font-bold text-slate-900">{transferQty} × {selectedItem}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Supervisor Portal Sync:</span>
-              <span className="font-semibold text-emerald-700">✓ Recorded</span>
+              <span className="text-slate-500">{lang === 'en' ? 'Supervisor Portal Sync:' : 'સુપરવાઈઝર સિંક:'}</span>
+              <span className="font-semibold text-emerald-700">{lang === 'en' ? '✓ Recorded' : '✓ નોંધાયેલ'}</span>
             </div>
           </div>
 
@@ -181,7 +181,7 @@ export const ShareExchangeScreen: React.FC<ShareExchangeScreenProps> = ({
             >
               {peerAwcList.map((peer) => (
                 <option key={peer.id} value={peer.id}>
-                  {peer.name} ({peer.distance}) • {peer.worker}
+                  {lang === 'gu' ? peer.nameGu : peer.nameEn} ({peer.distance}) • {lang === 'gu' ? peer.workerGu : peer.workerEn}
                 </option>
               ))}
             </select>

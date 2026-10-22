@@ -108,9 +108,11 @@ export const BalanceRemainingScreen: React.FC<BalanceRemainingScreenProps> = ({
             {lang === 'en' ? 'Direct Packets (THR)' : 'પોષણ પેકેટ્સ (THR)'}
           </span>
           <span className="text-2xl font-black text-emerald-950 tabular-nums">
-            {totalPackets} <span className="text-xs font-semibold text-emerald-700">Packs</span>
+            {totalPackets} <span className="text-xs font-semibold text-emerald-700">{lang === 'en' ? 'Packs' : 'પેકેટ'}</span>
           </span>
-          <p className="text-[10px] text-emerald-600 mt-0.5 font-medium">Bal, Matru & Purna Shakti</p>
+          <p className="text-[10px] text-emerald-600 mt-0.5 font-medium">
+            {lang === 'en' ? 'Bal, Matru & Purna Shakti' : 'બાલ, માતૃ અને પૂર્ણા શક્તિ'}
+          </p>
         </div>
 
         <div className="bg-[#FFF7ED] p-3.5 rounded-2xl border border-orange-200/70 shadow-2xs">
@@ -118,9 +120,11 @@ export const BalanceRemainingScreen: React.FC<BalanceRemainingScreenProps> = ({
             {lang === 'en' ? 'Raw Staples Weight' : 'કાચું અનાજ અને કઠોળ'}
           </span>
           <span className="text-2xl font-black text-orange-950 tabular-nums">
-            {totalStaplesKg} <span className="text-xs font-semibold text-orange-700">kg/L</span>
+            {totalStaplesKg} <span className="text-xs font-semibold text-orange-700">{lang === 'en' ? 'kg/L' : 'કિલો/લિટર'}</span>
           </span>
-          <p className="text-[10px] text-orange-600 mt-0.5 font-medium">Rice, Atta, Dal & Oil</p>
+          <p className="text-[10px] text-orange-600 mt-0.5 font-medium">
+            {lang === 'en' ? 'Rice, Atta, Dal & Oil' : 'ચોખા, લોટ, દાળ અને તેલ'}
+          </p>
         </div>
       </div>
 

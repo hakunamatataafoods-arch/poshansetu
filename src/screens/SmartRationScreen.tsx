@@ -54,19 +54,23 @@ export const SmartRationScreen: React.FC<SmartRationScreenProps> = ({ onBack, la
         <div className="space-y-2 text-xs">
           <div className="p-3 bg-[#EAF7EE] rounded-xl border border-emerald-200">
             <span className="font-bold text-emerald-950 block">
-              {lang === 'en' ? 'Track 1: Direct Sealed Packets (THR)' : 'ટ્રેક ૧: પેક કરેલ પૂરક આહાર (THR)'}
+              {lang === 'en' ? 'Track 1: Direct Sealed Packets (THR)' : 'ટ્રેક ૧: સીલબંધ પેકેટ્સ (ટેક હોમ રાશન - THR)'}
             </span>
             <p className="text-emerald-800 text-[11px] mt-0.5">
-              Bal Shakti (500g), Matru Shakti (1kg), Purna Shakti (1kg) are strictly audited in whole individual packet units. Never fractionated.
+              {lang === 'en'
+                ? 'Bal Shakti (500g), Matru Shakti (1kg), Purna Shakti (1kg) are strictly audited in whole individual packet units. Never fractionated.'
+                : 'બાલ શક્તિ (૫૦૦ગ્રા), માતૃ શક્તિ (૧કિલો), પૂર્ણા શક્તિ (૧કિલો) સંપૂર્ણ પેકેટ યુનિટમાં ઓડિટ થાય છે. તેને ક્યારેય તોડવામાં આવતા નથી.'}
             </p>
           </div>
 
           <div className="p-3 bg-[#FFF7ED] rounded-xl border border-orange-200">
             <span className="font-bold text-orange-950 block">
-              {lang === 'en' ? 'Track 2: Raw Staples (Hot Cooked Meals)' : 'ટ્રેક ૨: કાચો અનાજ પુરવઠો (ગરમ ભોજન)'}
+              {lang === 'en' ? 'Track 2: Raw Staples (Hot Cooked Meals)' : 'ટ્રેક ૨: કાચો અનાજ પુરવઠો (ગરમ રાંધેલું ભોજન)'}
             </span>
             <p className="text-orange-800 text-[11px] mt-0.5">
-              Whole Wheat Atta, Fortified Rice, Tuver Dal, Fortified Oil are calculated in exact decimal weights (grams and kg) multiplied by student attendance.
+              {lang === 'en'
+                ? 'Whole Wheat Atta, Fortified Rice, Tuver Dal, Fortified Oil are calculated in exact decimal weights (grams and kg) multiplied by student attendance.'
+                : 'ઘઉંનો લોટ, ફોર્ટિફાઇડ ચોખા, તુવેર દાળ, ફોર્ટિફાઇડ તેલ ચોક્કસ ગ્રામ અને કિલોગ્રામમાં હાજર બાળકોની સંખ્યા સાથે ગુણીને ગણતરી થાય છે.'}
             </p>
           </div>
         </div>
@@ -84,31 +88,37 @@ export const SmartRationScreen: React.FC<SmartRationScreenProps> = ({ onBack, la
         <div className="space-y-2.5 text-xs">
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
             <div className="flex justify-between items-center font-bold text-slate-900">
-              <span>Sukdi (Morning Breakfast)</span>
-              <span className="text-emerald-700">30 gm / child</span>
+              <span>{lang === 'en' ? 'Sukdi (Morning Breakfast)' : 'સુખડી (સવારનો નાસ્તો)'}</span>
+              <span className="text-emerald-700">{lang === 'en' ? '30 gm / child' : '૩૦ ગ્રામ / બાળક'}</span>
             </div>
             <p className="text-[11px] text-slate-600">
-              Wheat flour (30g) roasted with pure cow ghee and fortified jaggery. Provides ~160 kcal energy.
+              {lang === 'en'
+                ? 'Wheat flour (25g) roasted with edible oil/ghee and jaggery (5g). Provides ~160 kcal energy.'
+                : 'ઘઉંનો લોટ (૨૫ગ્રા), ખાદ્ય તેલ/ઘી (૫ગ્રા) અને ગોળ. બાળકને ~૧૬૦ કિલોકેલરી ઊર્જા પૂરી પાડે છે.'}
             </p>
           </div>
 
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
             <div className="flex justify-between items-center font-bold text-slate-900">
-              <span>Vegetable Khichdi (Afternoon Lunch)</span>
-              <span className="text-emerald-700">50 gm / child</span>
+              <span>{lang === 'en' ? 'Vegetable Khichdi (Afternoon Lunch)' : 'વેજીટેબલ ખીચડી (બપોરનું ભોજન)'}</span>
+              <span className="text-emerald-700">{lang === 'en' ? '50 gm / child' : '૫૦ ગ્રામ / બાળક'}</span>
             </div>
             <p className="text-[11px] text-slate-600">
-              Rice (35g) + Tuver Dal (15g) + Fresh green vegetables (20g) + Fortified oil (5g). Provides ~340 kcal & 12g protein.
+              {lang === 'en'
+                ? 'Rice (35g) + Tuver Dal (15g) + Fortified oil (5g) + Fresh green vegetables. Provides ~340 kcal & 12g protein.'
+                : 'ચોખા (૩૫ગ્રા) + તુવેર દાળ (૧૫ગ્રા) + ફોર્ટિફાઇડ તેલ (૫ગ્રા) + તાજા શાકભાજી. ~૩૪૦ કેલરી અને ૧૨ગ્રા પ્રોટીન આપે છે.'}
             </p>
           </div>
 
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
             <div className="flex justify-between items-center font-bold text-slate-900">
-              <span>Bal Shakti Sheera</span>
-              <span className="text-emerald-700">30 gm / child</span>
+              <span>{lang === 'en' ? 'Bal Shakti Sheera' : 'બાલ શક્તિ શીરો'}</span>
+              <span className="text-emerald-700">{lang === 'en' ? '30 gm / child' : '૩૦ ગ્રામ / બાળક'}</span>
             </div>
             <p className="text-[11px] text-slate-600">
-              Pre-fortified extruded cereal blend with micronutrients and essential iron/folic acid.
+              {lang === 'en'
+                ? 'Pre-fortified extruded cereal blend (25g) with oil (5g), iron, and essential micronutrients.'
+                : 'પૂરક આહાર બાલ શક્તિ પ્રિમિક્સ (૨૫ગ્રા) અને તેલ (૫ગ્રા), આયર્ન અને વિટામિન યુક્ત પોષક આહાર.'}
             </p>
           </div>
         </div>

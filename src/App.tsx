@@ -759,6 +759,7 @@ export default function App() {
                 <MealPhotoScreen
                   onBack={() => setCurrentScreen('home')}
                   lang={lang}
+                  isOnline={isOnline}
                 />
               )}
 

@@ -104,7 +104,9 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({
 
             <div className="flex justify-between items-center pt-2 border-t border-slate-200">
               <span className="text-slate-500 font-semibold">{lang === 'en' ? 'MPR-3 Register Sync:' : 'રજીસ્ટર સિંક:'}</span>
-              <span className="font-semibold text-emerald-700">✓ Logged & Synced</span>
+              <span className="font-semibold text-emerald-700">
+                {lang === 'en' ? '✓ Logged & Synced' : '✓ નોંધાયેલ અને સમન્વયિત'}
+              </span>
             </div>
           </div>
 
@@ -204,7 +206,9 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({
                         {lang === 'en' ? student.name : student.nameGu}
                       </h4>
                       <p className="text-[11px] text-slate-600">
-                        Age: {student.age} • {student.gender === 'M' ? 'Boy' : 'Girl'} • Parent: {student.parentName}
+                        {lang === 'en'
+                          ? `Age: ${student.age} • ${student.gender === 'M' ? 'Boy' : 'Girl'} • Parent: ${student.parentName}`
+                          : `ઉંમર: ${student.age} • ${student.gender === 'M' ? 'છોકરો' : 'છોકરી'} • વાલી: ${student.parentName}`}
                       </p>
                     </div>
                   </div>

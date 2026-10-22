@@ -128,6 +128,14 @@ export const StockReceivedScreen: React.FC<StockReceivedScreenProps> = ({
     }
   ]);
 
+  const getItemDisplayName = (it: InwardItemDetail) => {
+    const c = AVAILABLE_COMMODITIES.find((x) => x.itemId === it.itemId);
+    if (c) {
+      return lang === 'gu' ? c.itemNameGu : c.itemNameEn;
+    }
+    return it.itemName;
+  };
+
   const updateItem = (index: number, field: keyof InwardItemDetail, value: any) => {
     setItems((prev) => {
       const copy = [...prev];
@@ -279,7 +287,7 @@ export const StockReceivedScreen: React.FC<StockReceivedScreenProps> = ({
                 {lang === 'en' ? 'Supplier Godown:' : 'પુરવઠા ગોડાઉન:'}
               </span>
               <span className="font-bold text-slate-800 text-[11px] text-right max-w-[180px] truncate">
-                {supplier}
+                {lang === 'gu' ? 'જિલ્લા અન્ન અને નાગરિક પુરવઠા ગોડાઉન, આણંદ' : supplier}
               </span>
             </div>
           </div>
@@ -338,7 +346,7 @@ export const StockReceivedScreen: React.FC<StockReceivedScreenProps> = ({
                       </div>
                       <div className="min-w-0">
                         <span className="font-bold text-slate-900 text-xs block truncate">
-                          {item.itemName}
+                          {getItemDisplayName(item)}
                         </span>
                         {isZero && (
                           <span className="text-[9.5px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded">

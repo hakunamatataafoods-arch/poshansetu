@@ -55,11 +55,11 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
   const t = translations[lang];
 
   const beneficiaries = [
-    { name: 'Surbhi Rawat', category: 'Lactating Mother (LM)' },
-    { name: 'Shreeya Dube', category: 'Pregnant Woman (PW)' },
-    { name: 'Priti Arora', category: 'Lactating Mother (LM)' },
-    { name: 'Aarav Patel', category: 'Child (6m-3 yrs)' },
-    { name: 'Kiranben Solanki', category: 'Pregnant Woman (PW)' }
+    { nameEn: 'Surbhi Rawat', nameGu: 'સુરભી રાવત', categoryEn: 'Lactating Mother (LM)', categoryGu: 'ધાત્રી માતા (LM)' },
+    { nameEn: 'Shreeya Dube', nameGu: 'શ્રીયા દુબે', categoryEn: 'Pregnant Woman (PW)', categoryGu: 'સગર્ભા માતા (PW)' },
+    { nameEn: 'Priti Arora', nameGu: 'પ્રીતિ અરોરા', categoryEn: 'Lactating Mother (LM)', categoryGu: 'ધાત્રી માતા (LM)' },
+    { nameEn: 'Aarav Patel', nameGu: 'આરવ પટેલ', categoryEn: 'Child (6m-3 yrs)', categoryGu: 'બાળક (૬માસ-૩ વર્ષ)' },
+    { nameEn: 'Kiranben Solanki', nameGu: 'કિરણબેન સોલંકી', categoryEn: 'Pregnant Woman (PW)', categoryGu: 'સગર્ભા માતા (PW)' }
   ];
 
   const [selectedBeneficiary, setSelectedBeneficiary] = useState<string>('');
@@ -264,8 +264,8 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
     }
 
     setSubmitting(true);
-    const beneObj = beneficiaries.find((b) => b.name === selectedBeneficiary);
-    const category = beneObj ? beneObj.category : 'General';
+    const beneObj = beneficiaries.find((b) => b.nameEn === selectedBeneficiary || b.nameGu === selectedBeneficiary);
+    const category = beneObj ? (lang === 'gu' ? beneObj.categoryGu : beneObj.categoryEn) : 'General';
     const distributedSnapshot = { ...quantities };
 
     try {
@@ -449,11 +449,15 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
                 className="w-full bg-white border border-slate-200 text-slate-900 font-semibold text-xs rounded-xl px-3 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-8 shadow-2xs"
               >
                 <option value="">{t.selectBeneficiary}</option>
-                {beneficiaries.map((b) => (
-                  <option key={b.name} value={b.name}>
-                    {b.name} ({b.category.split(' ')[0]})
-                  </option>
-                ))}
+                {beneficiaries.map((b) => {
+                  const bName = lang === 'gu' ? b.nameGu : b.nameEn;
+                  const bCat = lang === 'gu' ? b.categoryGu : b.categoryEn;
+                  return (
+                    <option key={b.nameEn} value={bName}>
+                      {bName} ({bCat})
+                    </option>
+                  );
+                })}
               </select>
               <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-3 pointer-events-none" />
             </div>

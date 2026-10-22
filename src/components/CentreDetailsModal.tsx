@@ -151,7 +151,7 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
             }`}
           >
             <Baby className="w-3.5 h-3.5 text-emerald-700" />
-            <span className="truncate">Children</span>
+            <span className="truncate">{lang === 'en' ? 'Children' : 'બાળકો'}</span>
           </button>
 
           <button
@@ -163,7 +163,7 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
             }`}
           >
             <Heart className="w-3.5 h-3.5 text-pink-600" />
-            <span className="truncate">Infant</span>
+            <span className="truncate">{lang === 'en' ? 'Infant' : 'શિશુ'}</span>
           </button>
 
           <button
@@ -175,7 +175,7 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
             }`}
           >
             <Users className="w-3.5 h-3.5 text-amber-600" />
-            <span className="truncate">Pregnant</span>
+            <span className="truncate">{lang === 'en' ? 'Pregnant' : 'સગર્ભા'}</span>
           </button>
         </div>
 
@@ -194,20 +194,24 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
                     <h4 className="font-extrabold text-slate-900 text-sm">
-                      04 Vadtal Anganwadi Centre
+                      {lang === 'en' ? '04 Vadtal Anganwadi Centre' : '૦૪ વડતાલ આંગણવાડી કેન્દ્ર'}
                     </h4>
                     <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      Model AWC Grade A+
+                      {lang === 'en' ? 'Model AWC Grade A+' : 'આદર્શ આંગણવાડી ગ્રેડ A+'}
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 mt-0.5">
-                    Taluka: Anand • District: Anand • Code: AWVAD04
+                    {lang === 'en'
+                      ? 'Taluka: Anand • District: Anand • Code: AWVAD04'
+                      : 'તાલુકો: આણંદ • જિલ્લો: આણંદ • કેન્દ્ર કોડ: AWVAD04'}
                   </p>
                   <p className="text-[11px] text-slate-600 mt-1">
-                    Worker: <strong>Shrimati Bhavnaben Patel</strong> (AWW)
+                    {lang === 'en' ? 'Worker:' : 'કાર્યકર:'}{' '}
+                    <strong>{lang === 'en' ? 'Shrimati Bhavnaben Patel' : 'શ્રીમતી ભાવનાબેન પટેલ'}</strong> (AWW)
                   </p>
                   <p className="text-[11px] text-slate-500">
-                    Supervisor: <strong>Smt. Shardaben Shah</strong> (ICDS Sector Vadtal)
+                    {lang === 'en' ? 'Supervisor:' : 'સુપરવાઈઝર:'}{' '}
+                    <strong>{lang === 'en' ? 'Smt. Shardaben Shah' : 'શ્રીમતી શારદાબેન શાહ'}</strong> ({lang === 'en' ? 'ICDS Sector Vadtal' : 'ICDS સેક્ટર વડતાલ'})
                   </p>
                 </div>
               </div>
@@ -234,7 +238,7 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
                         <Baby className="w-4 h-4 stroke-[2.2]" />
                       </div>
                       <span className="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200 group-hover:bg-emerald-700 group-hover:text-white transition-colors">
-                        View List →
+                        {lang === 'en' ? 'View List →' : 'યાદી જુઓ →'}
                       </span>
                     </div>
                     <div className="mt-2.5">
@@ -242,10 +246,10 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
                         {childrenList.length}
                       </span>
                       <span className="font-extrabold text-slate-800 text-xs block mt-1">
-                        Children (3-6 yrs)
+                        {lang === 'en' ? 'Children (3-6 yrs)' : 'બાળકો (૩-૬ વર્ષ)'}
                       </span>
                       <span className="text-[10.5px] text-slate-500 font-medium block">
-                        Pre-School & Daily Hot Meals
+                        {lang === 'en' ? 'Pre-School & Daily Hot Meals' : 'પૂર્વ-પ્રાથમિક શિક્ષણ અને ગરમ ભોજન'}
                       </span>
                     </div>
                   </div>
@@ -260,7 +264,7 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
                         <Heart className="w-4 h-4 stroke-[2.2]" />
                       </div>
                       <span className="text-[10px] font-bold text-pink-800 bg-white px-2 py-0.5 rounded-full border border-pink-200 group-hover:bg-pink-600 group-hover:text-white transition-colors">
-                        View List →
+                        {lang === 'en' ? 'View List →' : 'યાદી જુઓ →'}
                       </span>
                     </div>
                     <div className="mt-2.5">
@@ -268,10 +272,10 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
                         {infantList.length}
                       </span>
                       <span className="font-extrabold text-slate-800 text-xs block mt-1">
-                        Infant (0-3 yrs)
+                        {lang === 'en' ? 'Infant (0-3 yrs)' : 'શિશુ (૦-૩ વર્ષ)'}
                       </span>
                       <span className="text-[10.5px] text-slate-500 font-medium block">
-                        Bal Shakti THR Recipients
+                        {lang === 'en' ? 'Bal Shakti THR Recipients' : 'બાલ શક્તિ પૂરક આહાર (THR)'}
                       </span>
                     </div>
                   </div>
@@ -286,7 +290,7 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
                         <Users className="w-4 h-4 stroke-[2.2]" />
                       </div>
                       <span className="text-[10px] font-bold text-amber-800 bg-white px-2 py-0.5 rounded-full border border-amber-200 group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                        View List →
+                        {lang === 'en' ? 'View List →' : 'યાદી જુઓ →'}
                       </span>
                     </div>
                     <div className="mt-2.5">
@@ -294,10 +298,10 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
                         {pregnantList.length}
                       </span>
                       <span className="font-extrabold text-slate-800 text-xs block mt-1">
-                        Pregnant Woman (PW)
+                        {lang === 'en' ? 'Pregnant Woman (PW)' : 'સગર્ભા માતાઓ (PW)'}
                       </span>
                       <span className="text-[10.5px] text-slate-500 font-medium block">
-                        Matru Shakti & ANC Roster
+                        {lang === 'en' ? 'Matru Shakti & ANC Roster' : 'માતૃ શક્તિ અને તપાસ રોસ્ટર'}
                       </span>
                     </div>
                   </div>
@@ -306,14 +310,16 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
                   <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 shadow-2xs col-span-2 sm:col-span-1 flex flex-col justify-between">
                     <div>
                       <span className="text-[10px] font-black uppercase text-emerald-800 block">
-                        TOTAL REGISTERED
+                        {lang === 'en' ? 'TOTAL REGISTERED' : 'કુલ નોંધાયેલ લાભાર્થી'}
                       </span>
                       <span className="text-2xl font-black text-emerald-800 block leading-none mt-1">
                         {REGISTERED_BENEFICIARIES.length}
                       </span>
                     </div>
                     <p className="text-[10.5px] text-slate-500 mt-2 font-medium">
-                      All records verified by Sector Supervisor & Poshan Tracker
+                      {lang === 'en'
+                        ? 'All records verified by Sector Supervisor & Poshan Tracker'
+                        : 'તમામ રેકોર્ડ સેક્ટર સુપરવાઈઝર અને પોષણ ટ્રેકર દ્વારા પ્રમાણિત'}
                     </p>
                   </div>
                 </div>
@@ -328,25 +334,31 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
                   <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200/70">
                     <span className="flex items-center gap-2">
                       <Droplet className="w-4 h-4 text-blue-500" />
-                      {lang === 'en' ? 'Safe RO Drinking Water Tap' : 'પીવાનું શુદ્ધ RO પાણી'}
+                      {lang === 'en' ? 'Safe RO Drinking Water Tap' : 'પીવાનું શુદ્ધ RO પાણીનું કનેક્શન'}
                     </span>
-                    <span className="font-bold text-emerald-700">✓ Functional</span>
+                    <span className="font-bold text-emerald-700">
+                      {lang === 'en' ? '✓ Functional' : '✓ કાર્યરત'}
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200/70">
                     <span className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-amber-500" />
-                      {lang === 'en' ? 'Clean Kitchen & Gas Stove' : 'સ્વચ્છ રસોડું અને ગેસ કનેક્શન'}
+                      {lang === 'en' ? 'Clean Kitchen & Gas Stove' : 'સ્વચ્છ રસોડું અને LPG ગેસ જોડાણ'}
                     </span>
-                    <span className="font-bold text-emerald-700">✓ Certified Clean</span>
+                    <span className="font-bold text-emerald-700">
+                      {lang === 'en' ? '✓ Certified Clean' : '✓ પ્રમાણિત સ્વચ્છ'}
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200/70">
                     <span className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-purple-500" />
-                      {lang === 'en' ? 'Digital Infantometer & Weight Scale' : 'ડિજિટલ વજન કાંટો અને સ્કેલ'}
+                      {lang === 'en' ? 'Digital Infantometer & Weight Scale' : 'ડિજિટલ વજન કાંટો અને ઊંચાઈ સ્કેલ'}
                     </span>
-                    <span className="font-bold text-emerald-700">✓ Calibrated</span>
+                    <span className="font-bold text-emerald-700">
+                      {lang === 'en' ? '✓ Calibrated' : '✓ પ્રમાણિત કેલિબ્રેટેડ'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -514,7 +526,7 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
             </button>
           ) : (
             <span className="text-[10px] text-slate-500 font-medium">
-              Vadtal Sector • AWC AWVAD04
+              {lang === 'en' ? 'Vadtal Sector • AWC AWVAD04' : 'વડતાલ સેક્ટર • કેન્દ્ર AWVAD04'}
             </span>
           )}
 

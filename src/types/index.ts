@@ -140,3 +140,22 @@ export interface NotificationItem {
   read: boolean;
   type: 'urgent' | 'info' | 'success';
 }
+
+export interface MealPhotoRecord {
+  id: string;
+  date: string;
+  time: string;
+  timestamp: string;
+  mealType: 'breakfast' | 'lunch' | 'snack';
+  menuName: string;
+  childrenCount: number;
+  photoUrl: string;
+  photoName?: string;
+  remarks?: string;
+  location: string;
+  gpsCoordinates: string;
+  awcCode: string;
+  workerName: string;
+  supervisorName: string;
+  status: 'verified' | 'submitted';
+}
