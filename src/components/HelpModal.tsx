@@ -23,7 +23,8 @@ import {
   Receipt,
   Users,
   Mic,
-  ArrowRight
+  ArrowRight,
+  Mail
 } from 'lucide-react';
 import { Language } from '../types';
 import { generateWorkerManualPdf, ManualLanguage } from '../utils/workerManualPdf';
@@ -665,6 +666,35 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, lang }) =
                 </p>
                 <p className="text-[10.5px] text-slate-500">
                   Monday to Saturday: 10:30 AM to 6:10 PM
+                </p>
+              </div>
+
+              {/* Official PoshanSetu Mail System & Grievance Desk */}
+              <div className="p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200 text-xs text-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-[#15803D] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
+                        {lang === 'en' ? 'Official Support Mail System' : 'સત્તાવાર પોષણ સેતુ ઈમેલ સિસ્ટમ'}
+                      </span>
+                      <h5 className="font-bold text-slate-900 text-xs font-mono">poshansetu-help@gujarat.gov.in</h5>
+                    </div>
+                  </div>
+                  <a
+                    href="mailto:poshansetu-help@gujarat.gov.in?subject=PoshanSetu%20Support%20Request%20-%20AWC%2004%20Vadtal"
+                    className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-[10.5px] font-bold flex items-center gap-1 shadow-2xs transition-colors shrink-0"
+                  >
+                    <span>{lang === 'en' ? 'Send Mail' : 'મેઇલ મોકલો'}</span>
+                    <ExternalLink className="w-3 h-3 text-emerald-700" />
+                  </a>
+                </div>
+                <p className="text-[10.5px] text-slate-600 leading-snug">
+                  {lang === 'en'
+                    ? 'State ICDS Directorate email desk for technical support, stock queries, and AWW assistance. Response within 24 working hours.'
+                    : 'રાજ્ય ICDS કચેરી ટેકનિકલ હેલ્પડેસ્ક. કોઈપણ મુશ્કેલી અથવા પ્રશ્ન માટે ૨૪ કલાકમાં ઈમેલ દ્વારા માર્ગદર્શન.'}
                 </p>
               </div>
             </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, User, Eye, EyeOff, ShieldCheck, Globe, ChevronDown, CheckCircle2, AlertCircle, ArrowRight, BookOpen } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, ShieldCheck, Globe, ChevronDown, CheckCircle2, AlertCircle, ArrowRight, HelpCircle } from 'lucide-react';
 import { PoshanSetuLogo } from '../components/PoshanSetuLogo';
 import { Language } from '../types';
 import { translations } from '../data/translations';
@@ -63,27 +63,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   };
 
   return (
-    <div className="px-5 pt-3 pb-8 space-y-5 animate-in fade-in duration-300">
-      {/* Top Controls: Ministry Tag & Actions (Language & Manual PDF Guide) */}
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold text-emerald-800 bg-[#EAF7EE] px-2.5 py-1 rounded-full border border-emerald-200">
+    <div className="px-5 pt-3 pb-8 space-y-4 animate-in fade-in duration-300">
+      {/* Top Controls: Ministry Tag & Actions (Language & Question Mark Help) */}
+      <div className="flex items-start justify-between">
+        <span className="text-[11px] font-semibold text-emerald-800 bg-[#EAF7EE] px-2.5 py-1 rounded-full border border-emerald-200 mt-0.5">
           Govt. of Gujarat • WCD
         </span>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Help & PDF Guide Button */}
-          {onOpenHelp && (
-            <button
-              type="button"
-              onClick={onOpenHelp}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 bg-white border border-emerald-300 text-emerald-800 rounded-full text-xs font-bold shadow-2xs hover:bg-emerald-50 active:scale-95 transition-all cursor-pointer"
-              title={lang === 'en' ? 'Anganwadi Worker Manual & PDF Guide' : 'કાર્યકર માર્ગદર્શિકા (PDF)'}
-            >
-              <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
-              <span>{lang === 'en' ? 'Help Guide (PDF)' : 'માર્ગદર્શિકા (PDF)'}</span>
-            </button>
-          )}
-
+        <div className="flex flex-col items-end gap-1">
           {/* Language Selector Dropdown */}
           <div className="relative">
             <button
@@ -122,11 +109,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               </div>
             )}
           </div>
+
+          {/* Small question mark help button placed directly below the dropdown arrow */}
+          {onOpenHelp && (
+            <button
+              type="button"
+              onClick={onOpenHelp}
+              className="w-6 h-6 rounded-full bg-white hover:bg-emerald-50 border border-emerald-300 hover:border-emerald-500 text-emerald-800 flex items-center justify-center shadow-2xs active:scale-90 transition-all cursor-pointer mr-1"
+              title={lang === 'en' ? 'Help, PDF Manual & Support' : 'મદદ, માર્ગદર્શિકા PDF અને સંપર્ક'}
+              aria-label="Help"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-emerald-700 stroke-[2.4]" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Brand Hero Welcome Section */}
-      <div className="flex flex-col items-center text-center pt-2 space-y-2">
+      <div className="flex flex-col items-center text-center pt-1 space-y-2">
         <div className="p-3 bg-white rounded-3xl border border-emerald-100 shadow-sm">
           <PoshanSetuLogo size="lg" />
         </div>
@@ -141,21 +141,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           <p className="text-xs text-slate-600 mt-1 max-w-[320px] leading-relaxed">
             {t.loginPrompt}
           </p>
-        </div>
-      </div>
-
-      {/* Centre Profile Banner */}
-      <div className="bg-[#EAF7EE] border border-emerald-200/80 rounded-2xl p-3.5 flex items-center gap-3 shadow-2xs">
-        <div className="w-10 h-10 rounded-xl bg-white text-emerald-800 flex items-center justify-center font-bold text-sm shadow-2xs shrink-0">
-          AW
-        </div>
-        <div className="text-left text-xs">
-          <span className="font-extrabold text-slate-900 block">
-            04 Vadtal (AWVAD04) • Taluka Anand
-          </span>
-          <span className="text-slate-600 block text-[11px] mt-0.5">
-            AWW: Shrimati Bhavnaben Patel • Sup: Shardaben Shah
-          </span>
         </div>
       </div>
 
@@ -250,36 +235,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           </button>
         </form>
       </div>
-
-      {/* Help & PDF Guide Banner for Users who need assistance */}
-      {onOpenHelp && (
-        <button
-          type="button"
-          onClick={onOpenHelp}
-          className="w-full p-3.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-100/70 rounded-2xl border border-emerald-300 text-left flex items-center justify-between shadow-2xs hover:border-emerald-400 hover:shadow-xs active:scale-[0.99] transition-all group cursor-pointer"
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <span className="font-bold text-slate-900 block text-xs leading-snug truncate">
-                {lang === 'en'
-                  ? 'Need Help Logging In or Using the App?'
-                  : 'લોગિન કરવામાં કે એપ વાપરવામાં મદદ જોઈએ છે?'}
-              </span>
-              <span className="text-[11px] text-slate-600 block leading-tight mt-0.5 truncate">
-                {lang === 'en'
-                  ? 'View illustrated step-by-step PDF manual & guide'
-                  : 'સચિત્ર માર્ગદર્શિકા પુસ્તિકા (PDF) જુઓ અને ડાઉનલોડ કરો'}
-              </span>
-            </div>
-          </div>
-          <span className="text-xs font-bold text-emerald-800 bg-white px-3 py-1.5 rounded-xl border border-emerald-200 shrink-0 shadow-2xs group-hover:bg-emerald-50 transition-colors ml-2">
-            {lang === 'en' ? 'Open PDF →' : 'માર્ગદર્શિકા →'}
-          </span>
-        </button>
-      )}
 
       {/* Official Security Disclaimer */}
       <div className="flex items-center justify-center gap-2 text-slate-600 text-[11px] pt-1">

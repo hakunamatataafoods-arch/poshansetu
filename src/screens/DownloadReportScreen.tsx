@@ -14,15 +14,26 @@ import {
   FileCheck,
   ShieldCheck,
   Layers,
-  Home
+  Home,
+  Receipt,
+  CreditCard
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { PoshanSetuLogo, PoshanSetuEmblem } from '../components/PoshanSetuLogo';
-import { InventoryItem, StockInwardRecord, InterAwcTransferRecord, Student, Language } from '../types';
+import {
+  InventoryItem,
+  StockInwardRecord,
+  InterAwcTransferRecord,
+  Student,
+  Language,
+  ExpenseClaimRecord
+} from '../types';
 import { translations } from '../data/translations';
 import { getMonthlyAttendanceRecord, OCTOBER_2026_DATES } from '../data/monthlyAttendance';
 import { getPoshanSetuLogoDataUrl } from '../utils/pdfLogo';
+import { generateIndividualBillVoucherPdf } from '../utils/billVoucherPdf';
+import { INITIAL_EXPENSE_CLAIMS } from '../data/initialExpenseClaims';
 
 export const formatBalance = (val: number): string => {
   if (val === null || val === undefined || isNaN(val)) return '0';
@@ -37,9 +48,10 @@ interface DownloadReportScreenProps {
   inwardHistory: StockInwardRecord[];
   transfers: InterAwcTransferRecord[];
   students: Student[];
+  claims?: ExpenseClaimRecord[];
 }
 
-export type ReportScope = 'full' | 'inventory' | 'attendance';
+export type ReportScope = 'full' | 'inventory' | 'attendance' | 'bills';
 
 export const DownloadReportScreen: React.FC<DownloadReportScreenProps> = ({
   onBack,
@@ -47,7 +59,8 @@ export const DownloadReportScreen: React.FC<DownloadReportScreenProps> = ({
   inventory,
   inwardHistory,
   transfers,
-  students
+  students,
+  claims = INITIAL_EXPENSE_CLAIMS
 }) => {
   const t = translations[lang];
 
@@ -57,8 +70,19 @@ export const DownloadReportScreen: React.FC<DownloadReportScreenProps> = ({
   const [showReturnModal, setShowReturnModal] = useState<boolean>(false);
   const [lastDownloadedFile, setLastDownloadedFile] = useState<string>('');
   
-  // Selected Report Scope: Full Data, Only Inventory, Only Attendance
+  // Selected Report Scope: Full Data, Only Inventory, Only Attendance, Only Bills
   const [reportScope, setReportScope] = useState<ReportScope>('full');
+
+  // Download individual single-bill official A4 voucher PDF (No images, full audit data)
+  const handleDownloadIndividualVoucher = (claim: ExpenseClaimRecord) => {
+    generateIndividualBillVoucherPdf(claim, lang);
+    setDownloadNotice(
+      lang === 'gu'
+        ? `✓ વાઉચર PDF ડાઉનલોડ થયું: #${claim.id} (બિલ #${claim.invoiceNumber} - ₹${claim.amount.toLocaleString('en-IN')})`
+        : `✓ Downloaded Official Voucher PDF: #${claim.id} (Inv #${claim.invoiceNumber} - ₹${claim.amount.toLocaleString('en-IN')})`
+    );
+    setTimeout(() => setDownloadNotice(null), 6000);
+  };
 
   const updateTimestamp = () => {
     const now = new Date();
@@ -214,10 +238,12 @@ export const DownloadReportScreen: React.FC<DownloadReportScreenProps> = ({
     doc.setFont('helvetica', 'normal');
     doc.text(
       reportScope === 'full'
-        ? 'Full Data (Stock + Attendance)'
+        ? 'Full Data (Stock + Attendance + Bills)'
         : reportScope === 'inventory'
         ? 'Stock Inventory & Batches Only'
-        : 'Student Attendance Register Only',
+        : reportScope === 'attendance'
+        ? 'Student Attendance Register Only'
+        : 'Local Contingency Bills & Claims Only',
       146,
       46
     );
@@ -572,6 +598,94 @@ export const DownloadReportScreen: React.FC<DownloadReportScreenProps> = ({
     }
 
     // =========================================================================
+    // SECTION: LOCAL CONTINGENCY BILL PURCHASES & REIMBURSEMENT (for 'full' or 'bills')
+    // No photo pictures included - financial and audit details only per requirement
+    // =========================================================================
+    if (reportScope === 'full' || reportScope === 'bills') {
+      if (reportScope === 'full') {
+        if (currentY > 215) {
+          doc.addPage();
+          addRunningHeader();
+          currentY = 22;
+        }
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(21, 128, 61);
+      doc.text(
+        reportScope === 'full'
+          ? '6. LOCAL CONTINGENCY BILL PURCHASES & REIMBURSEMENT LEDGER (WITHOUT IMAGES)'
+          : '1. LOCAL CONTINGENCY BILL PURCHASES & REIMBURSEMENT LEDGER (WITHOUT IMAGES)',
+        12,
+        currentY
+      );
+
+      const totalClaimed = claims.reduce((sum, c) => sum + c.amount, 0);
+      const totalCredited = claims.filter((c) => c.status === 'credited_to_bank').reduce((sum, c) => sum + c.amount, 0);
+      const totalPending = totalClaimed - totalCredited;
+
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      doc.text(
+        `Total Claims: ${claims.length} Bills • Total Spent: INR ${totalClaimed.toLocaleString('en-IN')} • Credited via DBT: INR ${totalCredited.toLocaleString('en-IN')} • In Process: INR ${totalPending.toLocaleString('en-IN')}`,
+        12,
+        currentY + 4.5
+      );
+
+      const billRows = claims.map((c, idx) => [
+        String(idx + 1),
+        c.date,
+        `#${c.invoiceNumber}`,
+        `${c.categoryLabelEn || c.category} - ${c.itemName}`,
+        c.vendorName,
+        `INR ${c.amount.toLocaleString('en-IN')}`,
+        c.paymentMode.toUpperCase(),
+        c.remarks || '-',
+        c.status === 'credited_to_bank'
+          ? `Credited (UTR: ${c.utrNumber || 'DBT-OK'})`
+          : c.status === 'approved_by_supervisor'
+          ? 'Supervisor Approved'
+          : c.status === 'rejected'
+          ? 'Rejected'
+          : 'Submitted (In Review)'
+      ]);
+
+      autoTable(doc, {
+        startY: currentY + 6.5,
+        head: [['#', 'Date', 'Invoice #', 'Item Purchased', 'Merchant / Shop', 'Amount', 'Mode', 'Worker Remarks', 'DBT Status']],
+        body: billRows,
+        theme: 'grid',
+        styles: {
+          fontSize: 6.8,
+          cellPadding: 1.3,
+          textColor: [30, 41, 59]
+        },
+        headStyles: {
+          fillColor: [21, 128, 61],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 7.2
+        },
+        columnStyles: {
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 18, fontStyle: 'bold' },
+          2: { cellWidth: 20, fontStyle: 'bold' },
+          3: { cellWidth: 36, fontStyle: 'bold' },
+          4: { cellWidth: 28 },
+          5: { cellWidth: 20, halign: 'right', fontStyle: 'bold', textColor: [21, 128, 61] },
+          6: { cellWidth: 14, halign: 'center' },
+          7: { cellWidth: 26 },
+          8: { cellWidth: 26, fontStyle: 'bold' }
+        },
+        margin: { left: 12, right: 12 }
+      });
+
+      currentY = (doc as any).lastAutoTable.finalY + 8;
+    }
+
+    // =========================================================================
     // FOOTER: SIGNATURES & VERIFICATION (A4 Safe Height)
     // =========================================================================
     if (currentY > 255) {
@@ -622,7 +736,9 @@ export const DownloadReportScreen: React.FC<DownloadReportScreenProps> = ({
         ? 'PoshanSetu_Full_Comprehensive_Report'
         : reportScope === 'inventory'
         ? 'PoshanSetu_Stock_Inventory_Report'
-        : 'PoshanSetu_Monthly_Attendance_Report';
+        : reportScope === 'attendance'
+        ? 'PoshanSetu_Monthly_Attendance_Report'
+        : 'PoshanSetu_Local_Bills_Reimbursement_Report';
 
     const filename = `${filePrefix}_04_Vadtal_AWVAD04_${new Date().toISOString().slice(0, 10)}.pdf`;
     doc.save(filename);
@@ -650,7 +766,9 @@ export const DownloadReportScreen: React.FC<DownloadReportScreenProps> = ({
         ? 'POSHANSETU FULL COMPREHENSIVE ANGANWADI LEDGER & ATTENDANCE REGISTER'
         : reportScope === 'inventory'
         ? 'POSHANSETU STOCK INVENTORY, BATCH REGISTRY & USAGE LEDGER'
-        : 'POSHANSETU MONTHLY STUDENT ATTENDANCE REGISTER (FORM MPR-3)'
+        : reportScope === 'attendance'
+        ? 'POSHANSETU MONTHLY STUDENT ATTENDANCE REGISTER (FORM MPR-3)'
+        : 'POSHANSETU LOCAL CONTINGENCY BILL PURCHASES & REIMBURSEMENT LEDGER'
     ]);
     rows.push(['REPORT GENERATION TIMESTAMP', genTime]);
     rows.push(['REPORT SCOPE', reportScope.toUpperCase()]);
@@ -771,6 +889,62 @@ export const DownloadReportScreen: React.FC<DownloadReportScreenProps> = ({
       rows.push(['Total Students Absent Today', String(totalEnrolled - presentCount)]);
       rows.push(['Monthly Average Attendance Rate', `${averageAttendance}%`]);
       rows.push(['Total Working Days in Month', '16 Days']);
+      rows.push([]);
+    }
+
+    // 3. BILL PURCHASES & REIMBURSEMENT (if full or bills)
+    if (reportScope === 'full' || reportScope === 'bills') {
+      rows.push([
+        reportScope === 'full'
+          ? '--- SECTION 6: LOCAL CONTINGENCY PURCHASES & REIMBURSEMENT LEDGER ---'
+          : '--- SECTION 1: LOCAL CONTINGENCY PURCHASES & REIMBURSEMENT LEDGER ---'
+      ]);
+      rows.push([
+        'Sr No',
+        'Voucher ID',
+        'Purchase Date',
+        'Invoice / Cash Memo Number',
+        'Expense Category',
+        'Item Description',
+        'Merchant / Shop Name',
+        'Amount Spent (INR)',
+        'Payment Mode',
+        'Reimbursement Status',
+        'Beneficiary AWW Account',
+        'DBT Reference / UTR Number',
+        'Worker Remarks',
+        'Submission Timestamp'
+      ]);
+
+      claims.forEach((c, idx) => {
+        rows.push([
+          String(idx + 1),
+          c.id,
+          c.date,
+          c.invoiceNumber,
+          c.categoryLabelEn || c.category,
+          c.itemName,
+          c.vendorName,
+          String(c.amount),
+          c.paymentMode.toUpperCase(),
+          c.status,
+          `${c.workerBankName} (••••${c.workerAccountLast4})`,
+          c.utrNumber || 'N/A',
+          c.remarks || '',
+          c.timestamp
+        ]);
+      });
+
+      const totalClaimed = claims.reduce((sum, c) => sum + c.amount, 0);
+      const totalCredited = claims.filter((c) => c.status === 'credited_to_bank').reduce((sum, c) => sum + c.amount, 0);
+      rows.push([]);
+      rows.push(['BILL REIMBURSEMENT SUMMARY STATISTICS']);
+      rows.push(['Total Bills Claimed', String(claims.length)]);
+      rows.push(['Total Amount Spent (INR)', String(totalClaimed)]);
+      rows.push(['Total Reimbursed via DBT (INR)', String(totalCredited)]);
+      rows.push(['Pending Verification / In Process (INR)', String(totalClaimed - totalCredited)]);
+      rows.push(['Beneficiary DBT Account', 'Bank of Baroda A/C ••••4821 - Smt. BhavnaBen Patel']);
+      rows.push([]);
     }
 
     // Build CSV string with quotes & escape
@@ -785,7 +959,9 @@ export const DownloadReportScreen: React.FC<DownloadReportScreenProps> = ({
         ? 'PoshanSetu_Full_Comprehensive_Data'
         : reportScope === 'inventory'
         ? 'PoshanSetu_Stock_Inventory_Data'
-        : 'PoshanSetu_Monthly_Attendance_Register';
+        : reportScope === 'attendance'
+        ? 'PoshanSetu_Monthly_Attendance_Register'
+        : 'PoshanSetu_Local_Bills_Reimbursement_Data';
 
     const filename = `${filePrefix}_04_Vadtal_AWVAD04_${new Date().toISOString().slice(0, 10)}.csv`;
     link.setAttribute('download', filename);
@@ -1022,6 +1198,45 @@ export const DownloadReportScreen: React.FC<DownloadReportScreenProps> = ({
               }`}
             >
               {reportScope === 'attendance' && <div className="w-2 h-2 rounded-full bg-white" />}
+            </div>
+          </div>
+
+          {/* Option 4: Only Bill Reimbursement Report (Text Ledger without photos) */}
+          <div
+            onClick={() => setReportScope('bills')}
+            className={`p-3 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
+              reportScope === 'bills'
+                ? 'bg-emerald-50/90 border-emerald-600 shadow-xs'
+                : 'bg-white border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                  reportScope === 'bills' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                <Receipt className="w-5 h-5 stroke-[2.2]" />
+              </div>
+              <div>
+                <span className="font-extrabold text-xs text-slate-900 block">
+                  {lang === 'gu'
+                    ? '૪. સ્થાનિક ખરીદી બિલ અને વળતર અહેવાલ (તસવીરો વગર)'
+                    : '4. Only Download Bill Reimbursement Report (No Photos)'}
+                </span>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {lang === 'gu'
+                    ? 'તમામ બિલની વિગતો, ખર્ચ રકમ, દુકાનદાર, બીલ નંબર અને ડીબીટી ખાતામાં જમા સ્ટેટસ'
+                    : 'Complete expense ledger with dates, spent amounts, merchants, invoices & DBT status'}
+                </span>
+              </div>
+            </div>
+            <div
+              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                reportScope === 'bills' ? 'border-emerald-700 bg-emerald-700' : 'border-slate-300'
+              }`}
+            >
+              {reportScope === 'bills' && <div className="w-2 h-2 rounded-full bg-white" />}
             </div>
           </div>
         </div>
@@ -1426,6 +1641,166 @@ export const DownloadReportScreen: React.FC<DownloadReportScreenProps> = ({
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================================================================== */}
+        {/* SECTION: LOCAL BILL PURCHASES & REIMBURSEMENT (Full or Bills)      */}
+        {/* ================================================================== */}
+        {(reportScope === 'full' || reportScope === 'bills') && (
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-xs text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                <Receipt className="w-3.5 h-3.5 text-emerald-700" />
+                <span>
+                  {reportScope === 'full'
+                    ? '5. Local Contingency Purchases & Reimbursement Ledger'
+                    : '1. Local Contingency Purchases & Reimbursement Ledger'}
+                </span>
+              </h3>
+              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                {lang === 'gu' ? 'તસવીરો વગર • ઑડિટ લેજર' : 'Text Only • No Images'}
+              </span>
+            </div>
+
+            {/* Financial Overview Summary Cards */}
+            {(() => {
+              const totalAmt = claims.reduce((s, c) => s + c.amount, 0);
+              const creditedAmt = claims
+                .filter((c) => c.status === 'credited_to_bank')
+                .reduce((s, c) => s + c.amount, 0);
+              const pendingAmt = totalAmt - creditedAmt;
+
+              return (
+                <div className="grid grid-cols-3 gap-2 bg-[#F4FAF4] p-2.5 rounded-2xl border border-emerald-200 text-center shadow-2xs">
+                  <div>
+                    <span className="block text-[10px] text-slate-500 font-semibold">
+                      {lang === 'gu' ? 'કુલ ખરીદી (બીલ)' : 'Total Spent'}
+                    </span>
+                    <span className="text-sm font-black text-slate-900">
+                      ₹{totalAmt.toLocaleString('en-IN')}
+                    </span>
+                    <span className="block text-[9px] text-slate-500 font-medium">
+                      {claims.length} {lang === 'gu' ? 'બીલ' : 'claims'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-emerald-700 font-semibold">
+                      {lang === 'gu' ? 'DBT જમા થયેલ' : 'Credited (DBT)'}
+                    </span>
+                    <span className="text-sm font-black text-emerald-700">
+                      ₹{creditedAmt.toLocaleString('en-IN')}
+                    </span>
+                    <span className="block text-[9px] text-emerald-600 font-medium">
+                      BOB ••••4821
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-amber-700 font-semibold">
+                      {lang === 'gu' ? 'ચકાસણી હેઠળ' : 'In Process'}
+                    </span>
+                    <span className="text-sm font-black text-amber-800">
+                      ₹{pendingAmt.toLocaleString('en-IN')}
+                    </span>
+                    <span className="block text-[9px] text-amber-600 font-medium">
+                      CDPO Verification
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Notice regarding images omitted */}
+            <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-[10.5px] text-slate-600 flex items-center justify-between">
+              <span>
+                {lang === 'gu'
+                  ? '📌 સરકારી ઓડિટ નિયમ અનુસાર ફોટો પિક્ચર વગર માત્ર નાણાકીય અને બિલ વિગતો સામેલ છે.'
+                  : '📌 As specified for the report, bill photos are excluded. Full date, merchant, invoice, and amount details are shown.'}
+              </span>
+              <span className="font-bold text-emerald-800 text-[10px] shrink-0 ml-2">
+                {lang === 'gu' ? 'પ્રમાણિત દસ્તાવેજ' : 'Certified Data'}
+              </span>
+            </div>
+
+            {/* Itemized Table with Individual Voucher Download Buttons */}
+            <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-2xs">
+              <table className="w-full text-left text-xs border-collapse min-w-[580px]">
+                <thead>
+                  <tr className="bg-[#15803D] text-white text-[10px]">
+                    <th className="py-2 px-2 text-center">#</th>
+                    <th className="py-2 px-2.5">Date</th>
+                    <th className="py-2 px-2">Invoice #</th>
+                    <th className="py-2 px-2.5">Purchased Item & Category</th>
+                    <th className="py-2 px-2">Merchant / Shop</th>
+                    <th className="py-2 px-2 text-right">Amount (₹)</th>
+                    <th className="py-2 px-2 text-center">DBT Status</th>
+                    <th className="py-2 px-2 text-center">Individual Voucher</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-[11px]">
+                  {claims.map((claim, idx) => {
+                    const isCredited = claim.status === 'credited_to_bank';
+                    const isApproved = claim.status === 'approved_by_supervisor';
+
+                    return (
+                      <tr key={claim.id} className="hover:bg-slate-50/80">
+                        <td className="py-2 px-2 text-center font-bold text-slate-500">
+                          {idx + 1}
+                        </td>
+                        <td className="py-2 px-2.5 text-slate-800 whitespace-nowrap font-bold">
+                          {claim.date}
+                        </td>
+                        <td className="py-2 px-2 font-mono text-[10.5px] font-bold text-slate-700 whitespace-nowrap">
+                          #{claim.invoiceNumber}
+                        </td>
+                        <td className="py-2 px-2.5 font-bold text-slate-900">
+                          <div>
+                            <span>{claim.itemName}</span>
+                            <span className="block text-[9.5px] text-slate-500 font-normal">
+                              {claim.categoryLabelGu || claim.category}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-2 px-2 text-slate-700">
+                          {claim.vendorName}
+                        </td>
+                        <td className="py-2 px-2 text-right font-black text-emerald-800 tabular-nums whitespace-nowrap">
+                          ₹{claim.amount.toLocaleString('en-IN')}
+                        </td>
+                        <td className="py-2 px-2 text-center whitespace-nowrap">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[9.5px] font-bold inline-block ${
+                              isCredited
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : isApproved
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
+                            {isCredited
+                              ? lang === 'gu' ? 'જમા (DBT)' : 'Credited (DBT)'
+                              : isApproved
+                              ? lang === 'gu' ? 'મંજૂર' : 'Approved'
+                              : lang === 'gu' ? 'ચકાસણી હેઠળ' : 'In Review'}
+                          </span>
+                        </td>
+                        <td className="py-2 px-2 text-center whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadIndividualVoucher(claim)}
+                            className="px-2.5 py-1 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-lg text-[10.5px] font-bold flex items-center gap-1 mx-auto transition-colors shadow-2xs active:scale-95 cursor-pointer"
+                            title={lang === 'gu' ? 'આ બિલનું વ્યક્તિગત વાઉચર PDF ડાઉનલોડ કરો' : 'Download individual voucher PDF for this bill'}
+                          >
+                            <Download className="w-3 h-3 text-emerald-700" />
+                            <span>{lang === 'gu' ? 'વાઉચર PDF' : 'Voucher PDF'}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

@@ -7,6 +7,7 @@ import { CentreDetailsModal } from './components/CentreDetailsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { VoiceAssistantModal } from './components/VoiceAssistantModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { DatabaseSettingsModal } from './components/DatabaseSettingsModal';
 
 import { HomeScreen } from './screens/HomeScreen';
 import { LoginScreen } from './screens/LoginScreen';
@@ -300,6 +301,7 @@ export default function App() {
   const [isCentreOpen, setIsCentreOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+  const [isDbSettingsOpen, setIsDbSettingsOpen] = useState(false);
   const [centreCategory, setCentreCategory] = useState<'overview' | 'children' | 'infant' | 'pregnant'>('overview');
 
   // Business Data
@@ -779,6 +781,7 @@ export default function App() {
                   inwardHistory={inwardHistory}
                   transfers={transfers}
                   students={students}
+                  claims={expenseClaims}
                 />
               )}
             </>
@@ -862,6 +865,13 @@ export default function App() {
           onToggleOnline={handleToggleOnline}
           onLogout={handleLogout}
           onOpenCentreDetails={handleOpenCentreDetails}
+          onOpenDbSettings={() => setIsDbSettingsOpen(true)}
+        />
+
+        <DatabaseSettingsModal
+          isOpen={isDbSettingsOpen}
+          onClose={() => setIsDbSettingsOpen(false)}
+          lang={lang}
         />
       </main>
     </div>

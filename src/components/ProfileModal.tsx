@@ -25,7 +25,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { Language } from '../types';
-import { getOfflineQueueCount, syncOfflineQueue } from '../services/firebase';
+import { getOfflineQueueCount, syncOfflineQueue, getDatabaseURL } from '../services/firebase';
 import workerAvatar from '../assets/images/bhavnaben_patel_avatar_1792406640270.jpg';
 import { PWAInstallButton } from './PWAInstallButton';
 
@@ -38,6 +38,7 @@ interface ProfileModalProps {
   onToggleOnline: () => void;
   onLogout?: () => void;
   onOpenCentreDetails?: (initialCategory?: 'children' | 'infant' | 'pregnant') => void;
+  onOpenDbSettings?: () => void;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -48,7 +49,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   isOnline,
   onToggleOnline,
   onLogout,
-  onOpenCentreDetails
+  onOpenCentreDetails,
+  onOpenDbSettings
 }) => {
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
@@ -558,9 +560,28 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   </button>
                 </div>
 
-                <p className="text-[10px] text-slate-500 font-mono break-all bg-white p-2 rounded-lg border border-slate-200">
-                  https://poshan-setu-default-rtdb.firebaseio.com/awc_awvad04
-                </p>
+                <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1.5">
+                  <div className="flex items-center justify-between text-[10.5px]">
+                    <span className="font-bold text-slate-700">
+                      {lang === 'en' ? 'Active Realtime Database URL:' : 'સક્રિય ડેટાબેઝ લિંક:'}
+                    </span>
+                    {onOpenDbSettings && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onOpenDbSettings();
+                        }}
+                        className="text-emerald-700 hover:text-emerald-800 font-bold underline cursor-pointer"
+                      >
+                        {lang === 'en' ? 'Change URL / Test ↗' : 'બદલો / ટેસ્ટ કરો ↗'}
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-600 font-mono break-all bg-slate-50 p-2 rounded border border-slate-100">
+                    {getDatabaseURL()}/awc_awvad04
+                  </p>
+                </div>
 
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-xs text-slate-600 font-medium">
