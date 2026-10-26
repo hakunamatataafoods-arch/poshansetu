@@ -98,15 +98,73 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
     return defaultInventoryMap[invId] ?? 0;
   };
 
-  const itemsConfig = [
-    { key: 'Rice', invId: 'rice', label: t.rice, unit: t.kg, gFactor: 1000 },
-    { key: 'Oil', invId: 'oil', label: t.oil, unit: t.litre, gFactor: 1000 },
-    { key: 'Bal Shakti', invId: 'bal_shakti', label: t.balShakti, unit: t.pack, gFactor: 500 },
-    { key: 'Matru Shakti', invId: 'matru_shakti', label: t.matruShakti, unit: t.pack, gFactor: 1000 },
-    { key: 'Purna Shakti', invId: 'purna_shakti', label: t.purnaShakti, unit: t.pack, gFactor: 1000 },
-    { key: 'Atta', invId: 'atta', label: t.atta, unit: t.kg, gFactor: 1000 },
-    { key: 'Tuver Dal', invId: 'dal', label: t.dal, unit: t.kg, gFactor: 1000 }
-  ];
+  // Standard commodity key mapping for translations
+  const standardKeyMap: Record<string, { key: string; label: string; unit: string; gFactor: number }> = {
+    rice: { key: 'Rice', label: t.rice, unit: t.kg, gFactor: 1000 },
+    oil: { key: 'Oil', label: t.oil, unit: t.litre, gFactor: 1000 },
+    bal_shakti: { key: 'Bal Shakti', label: t.balShakti, unit: t.pack, gFactor: 500 },
+    matru_shakti: { key: 'Matru Shakti', label: t.matruShakti, unit: t.pack, gFactor: 1000 },
+    purna_shakti: { key: 'Purna Shakti', label: t.purnaShakti, unit: t.pack, gFactor: 1000 },
+    atta: { key: 'Atta', label: t.atta, unit: t.kg, gFactor: 1000 },
+    dal: { key: 'Tuver Dal', label: t.dal, unit: t.kg, gFactor: 1000 }
+  };
+
+  // Build itemsConfig dynamically from the live inventory prop!
+  // Any newly bought or custom items added in Stock Received will be present in inventory and thus displayed here automatically!
+  const itemsConfig = React.useMemo(() => {
+    if (!inventory || inventory.length === 0) {
+      return Object.entries(standardKeyMap).map(([id, info]) => ({
+        key: info.key,
+        invId: id,
+        label: info.label,
+        unit: info.unit,
+        rawUnit: 'kg',
+        gFactor: info.gFactor,
+        isCustom: false,
+        category: 'staple' as const,
+        batchNo: undefined as string | undefined,
+        expiryDate: undefined as string | undefined
+      }));
+    }
+
+    return inventory.map((inv) => {
+      const std = standardKeyMap[inv.id];
+      if (std) {
+        return {
+          key: std.key,
+          invId: inv.id,
+          label: std.label,
+          unit: std.unit,
+          rawUnit: inv.unit,
+          gFactor: std.gFactor,
+          isCustom: false,
+          category: inv.category,
+          batchNo: inv.batchNo,
+          expiryDate: inv.expiryDate
+        };
+      }
+
+      // Custom / bought item!
+      const displayLabel = lang === 'gu' ? inv.nameGu : inv.nameEn;
+      let displayUnit = inv.unit;
+      if (inv.unit === 'kg') displayUnit = t.kg;
+      else if (inv.unit === 'litre') displayUnit = t.litre;
+      else if (inv.unit === 'Pack') displayUnit = t.pack;
+
+      return {
+        key: inv.nameEn,
+        invId: inv.id,
+        label: displayLabel,
+        unit: displayUnit,
+        rawUnit: inv.unit,
+        gFactor: 1000,
+        isCustom: true,
+        category: inv.category,
+        batchNo: inv.batchNo,
+        expiryDate: inv.expiryDate
+      };
+    });
+  }, [inventory, lang, t]);
 
   // Unit selection mode per item: 'base' (kg/litre/pack) or 'g' (grams)
   const [itemUnits, setItemUnits] = useState<Record<string, 'base' | 'g'>>(() => {
@@ -126,6 +184,28 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
     });
     return initial;
   });
+
+  // Keep itemUnits and typedInputs in sync when inventory updates (e.g. new bought items added)
+  React.useEffect(() => {
+    setItemUnits((prev) => {
+      const next = { ...prev };
+      itemsConfig.forEach((it) => {
+        if (!next[it.key]) next[it.key] = 'base';
+      });
+      return next;
+    });
+
+    setTypedInputs((prev) => {
+      const next = { ...prev };
+      itemsConfig.forEach((it) => {
+        if (next[it.key] === undefined) {
+          const stock = getItemStock(it.invId);
+          next[it.key] = stock > 0 ? '1' : '0';
+        }
+      });
+      return next;
+    });
+  }, [itemsConfig]);
 
   const formatRemainingBalance = (num: number): string => {
     if (num === null || num === undefined || isNaN(num)) return '0';
@@ -660,10 +740,20 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
                 >
                   {/* Item Header & Unit Selection Toggle (kg ⇄ grams) */}
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                       <span className="text-sm font-bold text-slate-900 truncate">
                         {item.label}
                       </span>
+                      {item.isCustom && (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
+                          {lang === 'gu' ? 'ખરીદેલી સામગ્રી' : 'Bought Item'}
+                        </span>
+                      )}
+                      {item.batchNo && (
+                        <span className="text-[9.5px] font-mono text-slate-400 font-semibold">
+                          #{item.batchNo}
+                        </span>
+                      )}
                       {isOutOfStock && (
                         <span className="px-2 py-0.5 rounded-md text-[9.5px] font-black bg-rose-100 text-rose-700 border border-rose-300 flex items-center gap-1 shrink-0">
                           <AlertTriangle className="w-3 h-3 stroke-[2.5]" />

@@ -671,8 +671,9 @@ export default function App() {
     distributedItems: Record<string, number>;
   }) => {
     // Deduct distributed items from inventory
-    setInventory((prev) =>
-      prev.map((item) => {
+    let updatedInvAfterDist: InventoryItem[] = [];
+    setInventory((prev) => {
+      const updated = prev.map((item) => {
         const itemKeyMap: Record<string, string> = {
           rice: 'Rice',
           oil: 'Oil',
@@ -683,13 +684,24 @@ export default function App() {
           dal: 'Tuver Dal'
         };
         const distributedKey = itemKeyMap[item.id];
-        if (distributedKey && record.distributedItems[distributedKey]) {
-          const qty = record.distributedItems[distributedKey];
-          return { ...item, currentStock: Number(Math.max(0, item.currentStock - qty).toFixed(3)) };
+        const qty =
+          (distributedKey && record.distributedItems[distributedKey]) ||
+          record.distributedItems[item.nameEn] ||
+          record.distributedItems[item.nameGu] ||
+          record.distributedItems[item.id] ||
+          0;
+
+        if (qty > 0) {
+          return {
+            ...item,
+            currentStock: Number(Math.max(0, item.currentStock - qty).toFixed(3))
+          };
         }
         return item;
-      })
-    );
+      });
+      updatedInvAfterDist = updated;
+      return updated;
+    });
 
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
@@ -709,7 +721,17 @@ export default function App() {
 
     Object.entries(record.distributedItems).forEach(([itemName, qty]) => {
       if (qty > 0) {
-        const info = itemEnGuMap[itemName] || { en: itemName, gu: itemName, unit: 'Units' };
+        const invItem = inventory.find(
+          (inv) =>
+            inv.id === itemName ||
+            inv.nameEn.toLowerCase().trim() === itemName.toLowerCase().trim() ||
+            inv.nameGu.trim() === itemName.trim()
+        );
+
+        const info = invItem
+          ? { en: invItem.nameEn, gu: invItem.nameGu, unit: invItem.unit }
+          : itemEnGuMap[itemName] || { en: itemName, gu: itemName, unit: 'Units' };
+
         distItems.push({
           itemNameEn: info.en,
           itemNameGu: info.gu,
@@ -753,32 +775,34 @@ export default function App() {
 
     // Update cloud inventory
     const invMap: Record<string, number> = {};
-    inventory.forEach((i) => {
+    (updatedInvAfterDist.length > 0 ? updatedInvAfterDist : inventory).forEach((i) => {
       invMap[i.id] = i.currentStock;
     });
     await updateFirebaseInventory(invMap, isOnline);
   };
 
-  // Stock Inward Confirmation with Individual Batches & Expiry Dates
+  // Stock Inward Confirmation with Individual Batches & Expiry Dates (Supports Bought Items)
   const handleConfirmInward = async (data: {
     inwardDate: string;
     challanNo: string;
     supplier: string;
     items: InwardItemDetail[];
   }) => {
-    // 1. Update Inventory item stock, batch number, and expiry date
-    setInventory((prev) =>
-      prev.map((invItem) => {
+    // 1. Update Inventory: update existing items AND create new bought items
+    let nextInventory: InventoryItem[] = [];
+
+    setInventory((prev) => {
+      // A. Update matching items already in inventory
+      const updatedExisting = prev.map((invItem) => {
         const matchingInward = data.items.find(
           (inw) =>
             inw.itemId === invItem.id ||
-            inw.itemName.toLowerCase().includes(invItem.nameEn.toLowerCase())
+            inw.itemName.toLowerCase().trim() === invItem.nameEn.toLowerCase().trim() ||
+            inw.itemName.trim() === invItem.nameGu.trim()
         );
         if (matchingInward) {
           let addedQty = matchingInward.quantity;
-          if (matchingInward.unit === 'g' && invItem.unit === 'kg') {
-            addedQty = matchingInward.quantity / 1000;
-          } else if (matchingInward.unit === 'g' && invItem.unit === 'litre') {
+          if (matchingInward.unit === 'g' && (invItem.unit === 'kg' || invItem.unit === 'litre')) {
             addedQty = matchingInward.quantity / 1000;
           } else if (matchingInward.unit === 'g' && invItem.unit === 'Pack') {
             const packWeight = invItem.id === 'bal_shakti' ? 500 : 1000;
@@ -794,8 +818,41 @@ export default function App() {
           };
         }
         return invItem;
-      })
-    );
+      });
+
+      // B. Create new inventory records for newly bought items not in inventory
+      const newItemsToAdd: InventoryItem[] = [];
+      data.items.forEach((inw) => {
+        const alreadyExists = prev.some(
+          (invItem) =>
+            invItem.id === inw.itemId ||
+            invItem.nameEn.toLowerCase().trim() === inw.itemName.toLowerCase().trim() ||
+            invItem.nameGu.trim() === inw.itemName.trim()
+        );
+
+        if (!alreadyExists && inw.quantity > 0) {
+          const rawUnit = inw.unit === 'g' ? 'kg' : inw.unit;
+          const finalQty = inw.unit === 'g' ? inw.quantity / 1000 : inw.quantity;
+          const isPacket = inw.category === 'packet' || inw.unit === 'Pack' || inw.unit === 'Pieces';
+
+          newItemsToAdd.push({
+            id: inw.itemId || `item_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+            nameEn: inw.itemName,
+            nameGu: inw.itemName,
+            category: isPacket ? 'packet' : 'staple',
+            unit: rawUnit,
+            currentStock: Number(finalQty.toFixed(3)),
+            initialStock: Number(finalQty.toFixed(3)),
+            minThreshold: Math.max(1, Math.round(finalQty * 0.2)),
+            batchNo: inw.batchNo || `BUY-VAD-26-0${Math.floor(1 + Math.random() * 9)}`,
+            expiryDate: inw.expiryDate || '12-2027'
+          });
+        }
+      });
+
+      nextInventory = [...updatedExisting, ...newItemsToAdd];
+      return nextInventory;
+    });
 
     // 2. Append to inwardHistory registry
     const newInwardRecord: StockInwardRecord = {
@@ -830,11 +887,11 @@ export default function App() {
       dateStr: `Today (${dateStr})`,
       timeStr,
       type: 'stock_inward',
-      titleEn: `District Stock Inward (${data.challanNo})`,
-      titleGu: `જિલ્લા ગોડાઉનથી સ્ટોક આવક (${data.challanNo})`,
+      titleEn: `Stock Inward / Bought (${data.challanNo})`,
+      titleGu: `સ્ટોક આવક / ખરીદી (${data.challanNo})`,
       referenceNo: data.challanNo,
-      beneficiaryOrSupplierEn: `Supplier: ${data.supplier}`,
-      beneficiaryOrSupplierGu: `પુરવઠા સપ્લાયર: ${data.supplier}`,
+      beneficiaryOrSupplierEn: `Supplier / Source: ${data.supplier}`,
+      beneficiaryOrSupplierGu: `પુરવઠા સ્રોત: ${data.supplier}`,
       items: inwItems,
       totalQuantity: totalInwQty,
       unit: 'Units',
@@ -851,7 +908,7 @@ export default function App() {
 
     // 4. Update cloud inventory snapshot
     const invMap: Record<string, number> = {};
-    inventory.forEach((i) => {
+    (nextInventory.length > 0 ? nextInventory : inventory).forEach((i) => {
       invMap[i.id] = i.currentStock;
     });
     await updateFirebaseInventory(invMap, isOnline);

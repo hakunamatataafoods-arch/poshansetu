@@ -71,6 +71,8 @@ export interface InwardItemDetail {
   unit: string;
   batchNo: string;
   expiryDate: string;
+  category?: 'packet' | 'staple';
+  isCustom?: boolean;
 }
 
 export interface StockInwardRecord {
