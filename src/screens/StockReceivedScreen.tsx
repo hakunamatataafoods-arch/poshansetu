@@ -144,6 +144,57 @@ export const StockReceivedScreen: React.FC<StockReceivedScreenProps> = ({
     });
   };
 
+  const getGramsFactorForInward = (itemId: string): number => {
+    if (itemId === 'bal_shakti') return 500;
+    return 1000;
+  };
+
+  const getBaseUnitForInward = (itemId: string): string => {
+    const c = AVAILABLE_COMMODITIES.find((x) => x.itemId === itemId);
+    return c ? c.unit : 'kg';
+  };
+
+  // Toggle unit between Base (kg / litre / Pack) and Grams (g)
+  const handleToggleInwardUnit = (index: number) => {
+    playPopClickSound();
+    const it = items[index];
+    const baseUnit = getBaseUnitForInward(it.itemId);
+    const factor = getGramsFactorForInward(it.itemId);
+
+    if (it.unit === 'g') {
+      const converted = Number((it.quantity / factor).toFixed(3));
+      setItems((prev) => {
+        const copy = [...prev];
+        copy[index] = { ...copy[index], unit: baseUnit, quantity: converted };
+        return copy;
+      });
+    } else {
+      const converted = Number((it.quantity * factor).toFixed(1));
+      setItems((prev) => {
+        const copy = [...prev];
+        copy[index] = { ...copy[index], unit: 'g', quantity: converted };
+        return copy;
+      });
+    }
+  };
+
+  // Step quantity
+  const handleStepInward = (index: number, deltaDir: 1 | -1) => {
+    playPopClickSound();
+    const it = items[index];
+    const step = it.unit === 'g' ? 500 : 5;
+    const newQty = Math.max(0, Number((it.quantity + deltaDir * step).toFixed(3)));
+    updateItem(index, 'quantity', newQty);
+  };
+
+  // Quick preset addition
+  const handleQuickAddInward = (index: number, addAmount: number) => {
+    playPopClickSound();
+    const it = items[index];
+    const newQty = Math.max(0, Number((it.quantity + addAmount).toFixed(3)));
+    updateItem(index, 'quantity', newQty);
+  };
+
   // Delete item from delivery
   const handleDeleteItem = (index: number) => {
     playPopClickSound();
@@ -332,8 +383,8 @@ export const StockReceivedScreen: React.FC<StockReceivedScreenProps> = ({
                       : 'bg-[#F8FAFC] border-slate-200'
                   }`}
                 >
-                  {/* Item Header & Controls */}
-                  <div className="flex items-center justify-between">
+                  {/* Item Header & Unit Selection Toggle */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 min-w-0">
                       <div
                         className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
@@ -356,56 +407,106 @@ export const StockReceivedScreen: React.FC<StockReceivedScreenProps> = ({
                       </div>
                     </div>
 
-                    {/* Quantity Stepper & Direct 0 Button & Delete */}
+                    {/* Unit Switcher: Base (kg/litre/Pack) vs Grams (g) */}
+                    <div className="inline-flex items-center bg-white p-0.5 rounded-xl border border-slate-200 shadow-2xs shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (item.unit === 'g') handleToggleInwardUnit(idx);
+                        }}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                          item.unit !== 'g'
+                            ? 'bg-emerald-700 text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {getBaseUnitForInward(item.itemId)}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (item.unit !== 'g') handleToggleInwardUnit(idx);
+                        }}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                          item.unit === 'g'
+                            ? 'bg-emerald-700 text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {lang === 'gu' ? 'ગ્રામ (g)' : 'Grams (g)'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quantity Stepper & Direct Typing Input & Quick Zero & Delete */}
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
+                    {/* Live Equivalent Conversion Badge */}
+                    <div className="min-w-0">
+                      {item.quantity > 0 ? (
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10.5px] font-semibold">
+                          <span>=</span>
+                          <span>
+                            {item.unit === 'g'
+                              ? `${(item.quantity / getGramsFactorForInward(item.itemId)).toFixed(3)} ${getBaseUnitForInward(item.itemId)}`
+                              : `${(item.quantity * getGramsFactorForInward(item.itemId)).toLocaleString()} g`}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-amber-700 font-semibold">
+                          {lang === 'gu' ? 'જથ્થો: ૦ (નથી મળેલ)' : 'Quantity: 0 (Not Received)'}
+                        </span>
+                      )}
+                    </div>
+
                     <div className="flex items-center gap-1.5 shrink-0">
                       {/* Set 0 quick button if > 0 */}
                       {item.quantity > 0 && (
                         <button
                           type="button"
                           onClick={() => handleSetZero(idx)}
-                          className="px-1.5 py-1 text-[10px] font-bold text-slate-500 hover:text-amber-800 hover:bg-amber-100/80 rounded-md transition-colors"
+                          className="px-1.5 py-1 text-[10px] font-bold text-slate-500 hover:text-amber-800 hover:bg-amber-100/80 rounded-md transition-colors cursor-pointer"
                           title={lang === 'gu' ? '૦ કરો (નથી મળેલ)' : 'Set to 0 (Not Received)'}
                         >
                           = 0
                         </button>
                       )}
 
-                      {/* Stepper with 0 support */}
-                      <div className="flex items-center bg-white rounded-xl p-0.5 border border-slate-200 shadow-2xs">
+                      {/* Stepper with typable figure input */}
+                      <div className="flex items-center bg-white rounded-xl p-0.5 border border-slate-300 shadow-2xs">
                         <button
                           type="button"
-                          onClick={() => {
-                            playPopClickSound();
-                            updateItem(idx, 'quantity', Math.max(0, item.quantity - 5));
-                          }}
-                          className="w-6 h-6 rounded-md bg-emerald-50 text-emerald-800 hover:bg-emerald-100 flex items-center justify-center font-bold text-xs"
-                          title="-5"
+                          onClick={() => handleStepInward(idx, -1)}
+                          className="w-6 h-6 rounded-md bg-emerald-50 text-emerald-800 hover:bg-emerald-100 flex items-center justify-center font-bold text-xs cursor-pointer"
+                          title={item.unit === 'g' ? '-500g' : '-5'}
                         >
                           <Minus className="w-3 h-3 stroke-[2.5]" />
                         </button>
 
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.quantity}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            updateItem(idx, 'quantity', isNaN(val) || val < 0 ? 0 : val);
-                          }}
-                          className={`w-10 text-center font-bold text-xs focus:outline-none ${
-                            isZero ? 'text-amber-700' : 'text-slate-900'
-                          }`}
-                        />
-                        <span className="text-[10px] text-slate-500 pr-1">{item.unit}</span>
+                        <div className="flex items-center px-1">
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            value={item.quantity === 0 ? '' : item.quantity}
+                            placeholder="0"
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              updateItem(idx, 'quantity', isNaN(val) || val < 0 ? 0 : val);
+                            }}
+                            className={`w-14 sm:w-18 text-center font-black text-xs sm:text-sm focus:outline-none ${
+                              isZero ? 'text-amber-700' : 'text-slate-900'
+                            }`}
+                          />
+                          <span className="text-[10.5px] font-bold text-slate-500 pr-0.5 select-none">
+                            {item.unit}
+                          </span>
+                        </div>
 
                         <button
                           type="button"
-                          onClick={() => {
-                            playPopClickSound();
-                            updateItem(idx, 'quantity', item.quantity + 5);
-                          }}
-                          className="w-6 h-6 rounded-md bg-emerald-50 text-emerald-800 hover:bg-emerald-100 flex items-center justify-center font-bold text-xs"
-                          title="+5"
+                          onClick={() => handleStepInward(idx, 1)}
+                          className="w-6 h-6 rounded-md bg-emerald-50 text-emerald-800 hover:bg-emerald-100 flex items-center justify-center font-bold text-xs cursor-pointer"
+                          title={item.unit === 'g' ? '+500g' : '+5'}
                         >
                           <Plus className="w-3 h-3 stroke-[2.5]" />
                         </button>
@@ -421,6 +522,76 @@ export const StockReceivedScreen: React.FC<StockReceivedScreenProps> = ({
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
+                  </div>
+
+                  {/* Quick-add preset chips for inward delivery */}
+                  <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto no-scrollbar">
+                    <span className="text-[10px] text-slate-400 font-medium shrink-0">
+                      {lang === 'gu' ? 'ઝડપી:' : 'Quick:'}
+                    </span>
+                    {item.unit === 'g' ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickAddInward(idx, 500)}
+                          className="px-2 py-0.5 rounded-md bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 text-[10px] font-bold transition-colors cursor-pointer"
+                        >
+                          +500g
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickAddInward(idx, 1000)}
+                          className="px-2 py-0.5 rounded-md bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 text-[10px] font-bold transition-colors cursor-pointer"
+                        >
+                          +1,000g (1kg)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickAddInward(idx, 5000)}
+                          className="px-2 py-0.5 rounded-md bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 text-[10px] font-bold transition-colors cursor-pointer"
+                        >
+                          +5,000g (5kg)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickAddInward(idx, 25000)}
+                          className="px-2 py-0.5 rounded-md bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 text-[10px] font-bold transition-colors cursor-pointer"
+                        >
+                          +25,000g (25kg)
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickAddInward(idx, 1)}
+                          className="px-2 py-0.5 rounded-md bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 text-[10px] font-bold transition-colors cursor-pointer"
+                        >
+                          +1
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickAddInward(idx, 5)}
+                          className="px-2 py-0.5 rounded-md bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 text-[10px] font-bold transition-colors cursor-pointer"
+                        >
+                          +5
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickAddInward(idx, 10)}
+                          className="px-2 py-0.5 rounded-md bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 text-[10px] font-bold transition-colors cursor-pointer"
+                        >
+                          +10
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickAddInward(idx, 25)}
+                          className="px-2 py-0.5 rounded-md bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 text-[10px] font-bold transition-colors cursor-pointer"
+                        >
+                          +25
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   {/* Batch Number & Expiry Inputs */}

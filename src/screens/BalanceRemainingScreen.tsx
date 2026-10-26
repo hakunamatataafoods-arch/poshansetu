@@ -30,8 +30,9 @@ interface BalanceRemainingScreenProps {
   onBack: () => void;
   lang: Language;
   inventory: InventoryItem[];
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<void>;
   transactions?: RecentTransactionItem[];
+  isOnline?: boolean;
 }
 
 export const formatRemainingBalance = (num: number): string => {
@@ -45,12 +46,25 @@ export const BalanceRemainingScreen: React.FC<BalanceRemainingScreenProps> = ({
   lang,
   inventory,
   onRefresh,
-  transactions = INITIAL_RECENT_TRANSACTIONS
+  transactions = INITIAL_RECENT_TRANSACTIONS,
+  isOnline = true
 }) => {
   const t = translations[lang];
   const [filter, setFilter] = useState<'all' | 'packet' | 'staple'>('all');
   const [showRecentTransactions, setShowRecentTransactions] = useState<boolean>(true);
   const [txnFilter, setTxnFilter] = useState<'all' | 'meal_deduction' | 'stock_inward' | 'thr_distribution' | 'inter_awc_transfer'>('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleSyncRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } catch (e) {
+      console.warn(e);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 600);
+    }
+  };
 
   const filteredItems = inventory.filter((item) => {
     if (filter === 'all') return true;
@@ -258,6 +272,47 @@ export const BalanceRemainingScreen: React.FC<BalanceRemainingScreenProps> = ({
         {/* Below that button: Recently Transactions Done List */}
         {showRecentTransactions && (
           <div className="space-y-3 animate-in fade-in duration-200">
+            {/* Live Cloud Status & Sync Action Bar */}
+            <div className="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                  }`}
+                />
+                <span className="font-bold text-slate-700 text-[11px]">
+                  {isOnline
+                    ? lang === 'en'
+                      ? 'Cloud Database Connected (RTDB)'
+                      : 'ક્લાઉડ ડેટાબેઝ સક્રિય (RTDB)'
+                    : lang === 'en'
+                    ? 'Offline Mode (Saved to Device)'
+                    : 'ઑફલાઇન મોડ (ઉપકરણમાં સંગ્રહિત)'}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSyncRefresh}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 active:scale-95 text-[11px] font-bold text-slate-800 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+                title={lang === 'en' ? 'Refresh & Sync with Cloud' : 'ક્લાઉડ સાથે સિંક કરો'}
+              >
+                <RefreshCw
+                  className={`w-3 h-3 text-emerald-700 ${isRefreshing ? 'animate-spin' : ''}`}
+                />
+                <span>
+                  {isRefreshing
+                    ? lang === 'en'
+                      ? 'Syncing...'
+                      : 'સિંક થાય છે...'
+                    : lang === 'en'
+                    ? 'Sync Cloud'
+                    : 'સિંક કરો'}
+                </span>
+              </button>
+            </div>
+
             {/* Filter Pills for Recent Transactions */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[11px] font-bold">
               <button
@@ -351,9 +406,9 @@ export const BalanceRemainingScreen: React.FC<BalanceRemainingScreenProps> = ({
                           : 'border-blue-200/90'
                       }`}
                     >
-                      {/* Top Header: Badge, Date, Ref ID */}
+                      {/* Top Header: Badge, Date, Ref ID & Live Sync Badge */}
                       <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           {/* Transaction Type Tag */}
                           <span
                             className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${
@@ -384,6 +439,19 @@ export const BalanceRemainingScreen: React.FC<BalanceRemainingScreenProps> = ({
                           <span className="text-[10px] font-mono text-slate-500 font-semibold bg-slate-100 px-1.5 py-0.5 rounded">
                             {txn.referenceNo}
                           </span>
+
+                          {/* Cloud Sync Status Badge */}
+                          {txn.synced !== false ? (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-0.5">
+                              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                              <span>{lang === 'en' ? 'Synced' : 'સિંક'}</span>
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-900 border border-amber-200 flex items-center gap-0.5">
+                              <Clock className="w-2.5 h-2.5 text-amber-600" />
+                              <span>{lang === 'en' ? 'Local' : 'સ્થાનિક'}</span>
+                            </span>
+                          )}
                         </div>
 
                         {/* Date and Time */}

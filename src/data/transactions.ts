@@ -23,6 +23,7 @@ export interface RecentTransactionItem {
   authorizedBy: string;
   noteEn?: string;
   noteGu?: string;
+  synced?: boolean;
 }
 
 export const INITIAL_RECENT_TRANSACTIONS: RecentTransactionItem[] = [

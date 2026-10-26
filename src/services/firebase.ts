@@ -115,6 +115,9 @@ export function queueOfflineSync(path: string, data: any) {
     timestamp: Date.now()
   });
   saveLocal('sync_queue', queue);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('poshansetu:queue_changed', { detail: { count: queue.length } }));
+  }
 }
 
 export function getOfflineQueueCount(): number {
@@ -335,8 +338,47 @@ export async function syncOfflineQueue(): Promise<{ success: boolean; syncedCoun
   }
 
   saveLocal('sync_queue', remaining);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('poshansetu:queue_changed', { detail: { count: remaining.length } }));
+  }
   if (synced > 0) {
     saveLocal('last_synced_time', new Date().toISOString());
   }
   return { success: remaining.length === 0, syncedCount: synced };
 }
+
+/**
+ * Reads data from Firebase RTDB with automatic REST and SDK fallback
+ */
+export async function fetchFirebaseData<T>(subPath: string, fallback: T): Promise<T> {
+  const fullPath = `${AWC_PATH}/${subPath}`;
+  const dbUrl = getDatabaseURL();
+
+  // Try 1: Direct HTTPS REST GET
+  try {
+    const res = await fetch(`${dbUrl}/${fullPath}.json`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data !== null && data !== undefined) {
+        return data as T;
+      }
+    }
+  } catch (e) {
+    // REST error, continue to SDK
+  }
+
+  // Try 2: Firebase JS SDK
+  const db = initFirebaseRTDB();
+  if (db) {
+    try {
+      const snapshot = await db.ref(fullPath).once('value');
+      const val = snapshot.val();
+      if (val !== null && val !== undefined) {
+        return val as T;
+      }
+    } catch (err) {}
+  }
+
+  return fallback;
+}
+

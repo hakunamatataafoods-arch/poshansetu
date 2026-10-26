@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
-import { Globe, Bell, MapPin, ChevronDown, LogOut, Mic } from 'lucide-react';
+import {
+  Globe,
+  Bell,
+  MapPin,
+  ChevronDown,
+  LogOut,
+  Mic,
+  RefreshCw,
+  WifiOff,
+  ReceiptText,
+  ArrowRight,
+  CheckCircle2
+} from 'lucide-react';
 import { PoshanSetuLogo } from '../components/PoshanSetuLogo';
 import workerAvatar from '../assets/images/bhavnaben_patel_avatar_1792406640270.jpg';
 import {
@@ -18,6 +30,7 @@ import { InventoryItem, Language } from '../types';
 import { translations } from '../data/translations';
 import { LowStockAlertWidget } from '../components/LowStockAlertWidget';
 import { PWAInstallButton } from '../components/PWAInstallButton';
+import { RecentTransactionItem } from '../data/transactions';
 
 interface HomeScreenProps {
   onNavigate: (screen: string) => void;
@@ -33,6 +46,12 @@ interface HomeScreenProps {
   inventory?: InventoryItem[];
   onUpdateInventory?: (newInventory: InventoryItem[]) => void;
   claimsCount?: number;
+  isSyncing?: boolean;
+  pendingChangesCount?: number;
+  syncNotice?: string | null;
+  onSyncNow?: () => void;
+  onAddTestPendingItem?: () => void;
+  transactions?: RecentTransactionItem[];
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -48,7 +67,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onOpenProfile,
   inventory = [],
   onUpdateInventory,
-  claimsCount = 3
+  claimsCount = 3,
+  isSyncing = false,
+  pendingChangesCount = 0,
+  syncNotice = null,
+  onSyncNow,
+  onAddTestPendingItem,
+  transactions = []
 }) => {
   const t = translations[lang];
   const [langMenuOpen, setLangMenuOpen] = useState(false);
@@ -273,22 +298,44 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <span className="leading-tight">{lang === 'en' ? '04-Vadtal Centre' : '૦૪-વડતાલ કેન્દ્ર'}</span>
           </div>
 
-          {/* Online/Offline Toggle Button */}
+          {/* Online/Offline/Syncing Dynamic Status Pill */}
           <button
             onClick={onToggleOnline}
             className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
-              isOnline
+              isSyncing
+                ? 'bg-sky-100 text-sky-950 border border-sky-300'
+                : isOnline
                 ? 'bg-[#DCFCE7] text-emerald-900 border border-emerald-300'
-                : 'bg-amber-100 text-amber-900 border border-amber-300'
+                : 'bg-amber-100 text-amber-950 border border-amber-300'
             }`}
-            title="Click to toggle online/offline status"
+            title={
+              isSyncing
+                ? 'Syncing with cloud...'
+                : isOnline
+                ? 'Online • Click to test offline mode'
+                : 'Offline mode • Click to go online and sync'
+            }
           >
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isOnline ? 'bg-emerald-600' : 'bg-amber-500'
-              }`}
-            />
-            <span>{isOnline ? (lang === 'en' ? 'Online' : 'ઓનલાઇન') : (lang === 'en' ? 'Offline' : 'ઓફલાઇન')}</span>
+            {isSyncing ? (
+              <>
+                <RefreshCw className="w-2.5 h-2.5 text-sky-600 animate-spin" />
+                <span>{lang === 'en' ? 'Syncing...' : 'સિંકિંગ...'}</span>
+              </>
+            ) : isOnline ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                <span>{lang === 'en' ? 'Online' : 'ઓનલાઇન'}</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-2.5 h-2.5 text-amber-700" />
+                <span>
+                  {lang === 'en'
+                    ? `Offline${pendingChangesCount > 0 ? ` (${pendingChangesCount})` : ''}`
+                    : `ઑફલાઇન${pendingChangesCount > 0 ? ` (${pendingChangesCount})` : ''}`}
+                </span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -331,6 +378,91 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </button>
           );
         })}
+      </div>
+
+      {/* 4. Recent Transactions Done Quick Preview Widget */}
+      <div className="bg-white rounded-3xl p-3.5 border border-emerald-200/90 shadow-2xs space-y-2.5 mt-1">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-[#EAF7EE] text-[#15803D] flex items-center justify-center">
+              <ReceiptText className="w-4 h-4 stroke-[2.2]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black text-slate-900 tracking-tight">
+                  {lang === 'en' ? 'Recent Transactions Done' : 'તાજેતરના સ્ટોક વ્યવહારો'}
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  {transactions.length}
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-500 font-medium">
+                {isOnline
+                  ? lang === 'en'
+                    ? '✓ Synced with Cloud RTDB'
+                    : '✓ ક્લાઉડ RTDB સાથે સિંક'
+                  : lang === 'en'
+                  ? '⏳ Saved locally on device'
+                  : '⏳ સ્થાનિક સંગ્રહિત'}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigate('balance-remaining')}
+            className="text-[11px] font-bold text-[#15803D] hover:text-[#166534] flex items-center gap-0.5 cursor-pointer py-1 px-2 rounded-lg hover:bg-emerald-50 transition-colors"
+          >
+            <span>{lang === 'en' ? 'View All' : 'બધા જુઓ'}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Latest 2 Transactions Snippet */}
+        {transactions.length > 0 ? (
+          <div className="space-y-1.5">
+            {transactions.slice(0, 2).map((txn) => {
+              const isPositive = txn.type === 'stock_inward';
+              return (
+                <div
+                  key={txn.id}
+                  onClick={() => onNavigate('balance-remaining')}
+                  className="flex items-center justify-between p-2 rounded-xl bg-slate-50/80 hover:bg-emerald-50/70 border border-slate-200/60 transition-all cursor-pointer text-xs"
+                >
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        txn.synced !== false ? 'bg-emerald-500' : 'bg-amber-500'
+                      }`}
+                    />
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-800 text-[11px] truncate leading-tight">
+                        {lang === 'gu' ? txn.titleGu : txn.titleEn}
+                      </p>
+                      <span className="text-[10px] text-slate-500 font-medium">
+                        {txn.timeStr} • {txn.referenceNo}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span
+                      className={`text-[11px] font-black tabular-nums ${
+                        isPositive ? 'text-emerald-700' : 'text-amber-800'
+                      }`}
+                    >
+                      {isPositive ? '+' : ''}
+                      {txn.totalQuantity} {txn.unit}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-500 text-center py-1">
+            {lang === 'en' ? 'No recent transactions yet.' : 'હજી કોઈ વ્યવહારો થયેલ નથી.'}
+          </p>
+        )}
       </div>
     </div>
   );

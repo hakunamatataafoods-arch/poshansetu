@@ -38,6 +38,9 @@ import {
   pushFirebaseData,
   updateFirebaseInventory,
   syncOfflineQueue,
+  getOfflineQueueCount,
+  queueOfflineSync,
+  fetchFirebaseData,
   loadLocal,
   saveLocal
 } from './services/firebase';
@@ -278,8 +281,24 @@ export default function App() {
   // App State
   const [lang, setLang] = useState<Language>(() => loadLocal<Language>('lang', 'en'));
   const [isOnline, setIsOnline] = useState<boolean>(() => loadLocal<boolean>('isOnline', true));
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [pendingQueueCount, setPendingQueueCount] = useState<number>(() => getOfflineQueueCount());
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const [currentScreen, setCurrentScreen] = useState<string>('home');
   const [activeDockTab, setActiveDockTab] = useState<DockTab>('home');
+
+  // Listen for real-time offline queue updates across components
+  useEffect(() => {
+    const updateCount = () => {
+      setPendingQueueCount(getOfflineQueueCount());
+    };
+    window.addEventListener('poshansetu:queue_changed', updateCount);
+    window.addEventListener('storage', updateCount);
+    return () => {
+      window.removeEventListener('poshansetu:queue_changed', updateCount);
+      window.removeEventListener('storage', updateCount);
+    };
+  }, []);
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
@@ -330,6 +349,9 @@ export default function App() {
   const [expenseClaims, setExpenseClaims] = useState<ExpenseClaimRecord[]>(() =>
     loadLocal<ExpenseClaimRecord[]>('expenseClaims', INITIAL_EXPENSE_CLAIMS)
   );
+  const [transactions, setTransactions] = useState<RecentTransactionItem[]>(() =>
+    loadLocal<RecentTransactionItem[]>('recent_transactions', INITIAL_RECENT_TRANSACTIONS)
+  );
 
   // Initialize Firebase RTDB on mount
   useEffect(() => {
@@ -356,6 +378,10 @@ export default function App() {
   useEffect(() => {
     saveLocal('expenseClaims', expenseClaims);
   }, [expenseClaims]);
+
+  useEffect(() => {
+    saveLocal('recent_transactions', transactions);
+  }, [transactions]);
 
   useEffect(() => {
     saveLocal('lang', lang);
@@ -389,12 +415,106 @@ export default function App() {
   // (Direct packets + general units)
   const currentTotalStock = inventory.reduce((sum, item) => sum + item.currentStock, 0) - 70; // calibrated to ~149
 
+  // Transactions state and real-time Firebase sync
+  const addRecentTransaction = async (txn: RecentTransactionItem) => {
+    setTransactions((prev) => [txn, ...prev]);
+    await pushFirebaseData('transactions', txn, isOnline);
+  };
+
+  const handleRefreshTransactions = async () => {
+    if (!isOnline) return;
+    try {
+      const cloudData = await fetchFirebaseData<Record<string, any>>('transactions', {});
+      if (cloudData && typeof cloudData === 'object') {
+        const cloudList: RecentTransactionItem[] = Object.values(cloudData).filter(
+          (t: any) => t && t.id
+        );
+        if (cloudList.length > 0) {
+          setTransactions((prev) => {
+            const map = new Map<string, RecentTransactionItem>();
+            // Keep local
+            prev.forEach((t) => map.set(t.id, { ...t, synced: true }));
+            // Merge cloud
+            cloudList.forEach((t) => map.set(t.id, { ...t, synced: true }));
+            const merged = Array.from(map.values()).sort(
+              (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            );
+            saveLocal('recent_transactions', merged);
+            return merged;
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Could not refresh cloud transactions:', e);
+    }
+  };
+
+  // Sync transactions when online status becomes active
+  useEffect(() => {
+    if (isOnline) {
+      handleRefreshTransactions();
+    }
+  }, [isOnline]);
+
   // Handlers
+  const handleSyncNow = async () => {
+    setIsSyncing(true);
+    try {
+      const result = await syncOfflineQueue();
+      const count = result.syncedCount;
+      setPendingQueueCount(getOfflineQueueCount());
+      
+      // Mark all local transactions as synced
+      setTransactions((prev) => {
+        const marked = prev.map((t) => ({ ...t, synced: true }));
+        saveLocal('recent_transactions', marked);
+        return marked;
+      });
+
+      // Pull latest transactions from cloud
+      await handleRefreshTransactions();
+
+      if (count > 0) {
+        setSyncNotice(
+          lang === 'gu'
+            ? `✓ ${count} બાકી ફેરફારો અને વ્યવહારો ક્લાઉડ સાથે સફળતાપૂર્વક સિંક થયા!`
+            : `✓ ${count} pending record${count > 1 ? 's' : ''} & transactions successfully synced to Cloud!`
+        );
+        setTimeout(() => setSyncNotice(null), 5000);
+      } else {
+        setSyncNotice(
+          lang === 'gu'
+            ? '✓ તમામ તાજેતરના વ્યવહારો અને સ્ટોક ક્લાઉડ સાથે સિંક છે.'
+            : '✓ All recent transactions & pantry records are verified and synced.'
+        );
+        setTimeout(() => setSyncNotice(null), 3500);
+      }
+    } catch (e) {
+      console.warn('Sync error:', e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleToggleOnline = async () => {
     const nextState = !isOnline;
     setIsOnline(nextState);
     if (nextState) {
-      await syncOfflineQueue();
+      await handleSyncNow();
+    } else {
+      setNotifications((prev) => [
+        {
+          id: 'offline-' + Date.now(),
+          title: 'Offline mode active',
+          titleGu: 'ઑફલાઇન મોડ સક્રિય',
+          message: 'Device is offline. Changes are saved locally on this device.',
+          messageGu: 'ઉપકરણ ઑફલાઇન છે. તમામ ફેરફારો સ્થાનિક રીતે સાચવવામાં આવશે.',
+          time: 'Just now',
+          read: false,
+          type: 'info'
+        },
+        ...prev
+      ]);
     }
   };
 
@@ -450,10 +570,10 @@ export default function App() {
     setInventory((prev) =>
       prev.map((item) => {
         if (data.menuName.includes('Atta') && item.id === 'atta') {
-          return { ...item, currentStock: Math.max(0, item.currentStock - deductionKg) };
+          return { ...item, currentStock: Math.max(0, Number((item.currentStock - deductionKg).toFixed(3))) };
         }
         if (data.menuName.includes('Khichdi') && (item.id === 'rice' || item.id === 'dal')) {
-          return { ...item, currentStock: Math.max(0, item.currentStock - deductionKg / 2) };
+          return { ...item, currentStock: Math.max(0, Number((item.currentStock - deductionKg / 2).toFixed(3))) };
         }
         if (data.menuName.includes('Bal Shakti') && item.id === 'bal_shakti') {
           return { ...item, currentStock: Math.max(0, item.currentStock - 1) };
@@ -462,6 +582,69 @@ export default function App() {
       })
     );
 
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    const mealItems: RecentTransactionItem['items'] = [];
+    if (data.menuName.includes('Atta')) {
+      mealItems.push({
+        itemNameEn: 'Whole Wheat Atta',
+        itemNameGu: 'આખો ઘઉંનો લોટ',
+        quantity: -deductionKg,
+        unit: 'kg'
+      });
+    } else if (data.menuName.includes('Khichdi')) {
+      mealItems.push({
+        itemNameEn: 'Fortified Rice',
+        itemNameGu: 'ફોર્ટિફાઇડ ચોખા',
+        quantity: -Number((deductionKg / 2).toFixed(3)),
+        unit: 'kg'
+      });
+      mealItems.push({
+        itemNameEn: 'Tuver Dal',
+        itemNameGu: 'તુવેર દાળ',
+        quantity: -Number((deductionKg / 2).toFixed(3)),
+        unit: 'kg'
+      });
+    } else if (data.menuName.includes('Bal Shakti')) {
+      mealItems.push({
+        itemNameEn: 'Bal Shakti Premix',
+        itemNameGu: 'બાલ શક્તિ પૂરક આહાર',
+        quantity: -1,
+        unit: 'Pack'
+      });
+    } else {
+      mealItems.push({
+        itemNameEn: data.menuName,
+        itemNameGu: data.menuName,
+        quantity: -deductionKg,
+        unit: 'kg'
+      });
+    }
+
+    const newTxn: RecentTransactionItem = {
+      id: `TXN-MEAL-${Date.now()}`,
+      timestamp: now.toISOString(),
+      dateStr: `Today (${dateStr})`,
+      timeStr,
+      type: 'meal_deduction',
+      titleEn: `Hot Cooked Meal (${data.mealType === 'breakfast' ? 'Breakfast' : 'Lunch'}): ${data.menuName}`,
+      titleGu: `ગરમ તાજું ભોજન (${data.mealType === 'breakfast' ? 'સવારનો નાસ્તો' : 'બપોરનું ભોજન'}): ${data.menuName}`,
+      referenceNo: `RECIPE-${data.mealType.toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`,
+      beneficiaryOrSupplierEn: `Served to ${data.studentsCount} Present Children (${data.totalGm}g total)`,
+      beneficiaryOrSupplierGu: `${data.studentsCount} હાજર બાળકોને પીરસાયું (કુલ ${data.totalGm} ગ્રામ)`,
+      items: mealItems,
+      totalQuantity: -deductionKg,
+      unit: 'kg',
+      authorizedBy: 'Shrimati Bhavnaben Patel (AWW)',
+      noteEn: 'Real-time daily attendance meal portion deducted from centre stock.',
+      noteGu: 'હાજર બાળકો મુજબ દૈનિક ભોજન જથ્થો કેન્દ્ર સ્ટોકમાંથી આપોઆપ કપાત.',
+      synced: isOnline
+    };
+
+    await addRecentTransaction(newTxn);
+
     // Push to Firebase RTDB
     await pushFirebaseData('meal_entries', {
       mealType: data.mealType,
@@ -469,7 +652,7 @@ export default function App() {
       studentsPresent: data.studentsCount,
       totalGrams: data.totalGm,
       confirmedBy: 'Shrimati Bhavnaben Patel (AWW)',
-      timestamp: new Date().toISOString()
+      timestamp: now.toISOString()
     }, isOnline);
 
     // Also update cloud inventory summary
@@ -496,16 +679,68 @@ export default function App() {
           bal_shakti: 'Bal Shakti',
           matru_shakti: 'Matru Shakti',
           purna_shakti: 'Purna Shakti',
-          atta: 'Atta'
+          atta: 'Atta',
+          dal: 'Tuver Dal'
         };
         const distributedKey = itemKeyMap[item.id];
         if (distributedKey && record.distributedItems[distributedKey]) {
           const qty = record.distributedItems[distributedKey];
-          return { ...item, currentStock: Math.max(0, item.currentStock - qty) };
+          return { ...item, currentStock: Number(Math.max(0, item.currentStock - qty).toFixed(3)) };
         }
         return item;
       })
     );
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    const distItems: RecentTransactionItem['items'] = [];
+    let totalDistQty = 0;
+    const itemEnGuMap: Record<string, { en: string; gu: string; unit: string }> = {
+      'Rice': { en: 'Fortified Rice', gu: 'ફોર્ટિફાઇડ ચોખા', unit: 'kg' },
+      'Oil': { en: 'Fortified Edible Oil', gu: 'ફોર્ટિફાઇડ ખાદ્ય તેલ', unit: 'litre' },
+      'Bal Shakti': { en: 'Bal Shakti Premix', gu: 'બાલ શક્તિ પૂરક આહાર', unit: 'Pack' },
+      'Matru Shakti': { en: 'Matru Shakti Premix', gu: 'માતૃ શક્તિ પૂરક આહાર', unit: 'Pack' },
+      'Purna Shakti': { en: 'Purna Shakti Premix', gu: 'પૂર્ણા શક્તિ પૂરક આહાર', unit: 'Pack' },
+      'Atta': { en: 'Whole Wheat Atta', gu: 'આખો ઘઉંનો લોટ', unit: 'kg' },
+      'Tuver Dal': { en: 'Tuver Dal', gu: 'તુવેર દાળ', unit: 'kg' }
+    };
+
+    Object.entries(record.distributedItems).forEach(([itemName, qty]) => {
+      if (qty > 0) {
+        const info = itemEnGuMap[itemName] || { en: itemName, gu: itemName, unit: 'Units' };
+        distItems.push({
+          itemNameEn: info.en,
+          itemNameGu: info.gu,
+          quantity: -qty,
+          unit: info.unit
+        });
+        totalDistQty += qty;
+      }
+    });
+
+    const newTxn: RecentTransactionItem = {
+      id: `TXN-THR-${Date.now()}`,
+      timestamp: now.toISOString(),
+      dateStr: `Today (${dateStr})`,
+      timeStr,
+      type: 'thr_distribution',
+      titleEn: `Take-Home Ration (THR) Distribution`,
+      titleGu: `ટેક-હોમ રેશન (THR) વિતરણ નોંધણી`,
+      referenceNo: `THR-VAD-${now.getFullYear().toString().slice(-2)}-${Math.floor(100 + Math.random() * 900)}`,
+      beneficiaryOrSupplierEn: `Beneficiary: ${record.beneficiaryName} (${record.beneficiaryCategory})`,
+      beneficiaryOrSupplierGu: `લાભાર્થી: ${record.beneficiaryName} (${record.beneficiaryCategory})`,
+      items: distItems,
+      totalQuantity: -totalDistQty,
+      unit: 'Units',
+      authorizedBy: 'Shrimati Bhavnaben Patel (AWW)',
+      noteEn: record.photoAttached ? 'Biometric & photo verified in POSHAN register.' : 'Direct beneficiary distribution logged.',
+      noteGu: record.photoAttached ? 'ફોટો અને બાયોમેટ્રિક ચકાસાયેલ.' : 'લાભાર્થી વિતરણ સફળતાપૂર્વક નોંધાયું.',
+      synced: isOnline
+    };
+
+    await addRecentTransaction(newTxn);
 
     // Push to Firebase RTDB
     await pushFirebaseData('distributions', {
@@ -513,7 +748,7 @@ export default function App() {
       category: record.beneficiaryCategory,
       photoAttached: record.photoAttached,
       items: record.distributedItems,
-      timestamp: new Date().toISOString()
+      timestamp: now.toISOString()
     }, isOnline);
 
     // Update cloud inventory
@@ -540,10 +775,20 @@ export default function App() {
             inw.itemName.toLowerCase().includes(invItem.nameEn.toLowerCase())
         );
         if (matchingInward) {
+          let addedQty = matchingInward.quantity;
+          if (matchingInward.unit === 'g' && invItem.unit === 'kg') {
+            addedQty = matchingInward.quantity / 1000;
+          } else if (matchingInward.unit === 'g' && invItem.unit === 'litre') {
+            addedQty = matchingInward.quantity / 1000;
+          } else if (matchingInward.unit === 'g' && invItem.unit === 'Pack') {
+            const packWeight = invItem.id === 'bal_shakti' ? 500 : 1000;
+            addedQty = matchingInward.quantity / packWeight;
+          }
+
           return {
             ...invItem,
-            currentStock: invItem.currentStock + matchingInward.quantity,
-            initialStock: invItem.initialStock + matchingInward.quantity,
+            currentStock: Number((invItem.currentStock + addedQty).toFixed(3)),
+            initialStock: Number((invItem.initialStock + addedQty).toFixed(3)),
             batchNo: matchingInward.batchNo || invItem.batchNo,
             expiryDate: matchingInward.expiryDate || invItem.expiryDate
           };
@@ -562,6 +807,44 @@ export default function App() {
     };
 
     setInwardHistory((prev) => [newInwardRecord, ...prev]);
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    let totalInwQty = 0;
+    const inwItems: RecentTransactionItem['items'] = data.items.map((it) => {
+      totalInwQty += it.quantity;
+      return {
+        itemNameEn: it.itemName,
+        itemNameGu: it.itemName,
+        quantity: it.quantity,
+        unit: it.unit,
+        batchNo: it.batchNo
+      };
+    });
+
+    const newTxn: RecentTransactionItem = {
+      id: `TXN-INW-${Date.now()}`,
+      timestamp: now.toISOString(),
+      dateStr: `Today (${dateStr})`,
+      timeStr,
+      type: 'stock_inward',
+      titleEn: `District Stock Inward (${data.challanNo})`,
+      titleGu: `જિલ્લા ગોડાઉનથી સ્ટોક આવક (${data.challanNo})`,
+      referenceNo: data.challanNo,
+      beneficiaryOrSupplierEn: `Supplier: ${data.supplier}`,
+      beneficiaryOrSupplierGu: `પુરવઠા સપ્લાયર: ${data.supplier}`,
+      items: inwItems,
+      totalQuantity: totalInwQty,
+      unit: 'Units',
+      authorizedBy: 'Shrimati Bhavnaben Patel (AWW)',
+      noteEn: `Inward delivery verified against official challan #${data.challanNo}.`,
+      noteGu: `સત્તાવાર ડિલિવરી ચલણ #${data.challanNo} મુજબ સ્ટોક ચકાસણી પૂર્ણ.`,
+      synced: isOnline
+    };
+
+    await addRecentTransaction(newTxn);
 
     // 3. Push to Firebase RTDB
     await pushFirebaseData('stock_inward', newInwardRecord, isOnline);
@@ -642,6 +925,40 @@ export default function App() {
     // 2. Append to transfers registry
     setTransfers((prev) => [newTransferRecord, ...prev]);
 
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const isLend = data.action === 'lend';
+
+    const newTxn: RecentTransactionItem = {
+      id: `TXN-TR-${Date.now()}`,
+      timestamp: now.toISOString(),
+      dateStr: `Today (${dateStr})`,
+      timeStr,
+      type: 'inter_awc_transfer',
+      titleEn: `Setu Share: ${isLend ? 'Stock Lent to' : 'Stock Borrowed from'} Peer Centre`,
+      titleGu: `સેતુ શેર: સાથી આંગણવાડી કેન્દ્ર સાથે ${isLend ? 'ઉધાર સ્ટોક આપ્યો' : 'સ્ટોક મેળવ્યો'}`,
+      referenceNo: data.verificationCode || '#8491',
+      beneficiaryOrSupplierEn: `Peer: ${peerNames[data.peerAwc] || data.peerAwc} (Code: ${data.verificationCode || '#8491'})`,
+      beneficiaryOrSupplierGu: `સાથી કેન્દ્ર: ${peerNames[data.peerAwc] || data.peerAwc} (કોડ: ${data.verificationCode || '#8491'})`,
+      items: [
+        {
+          itemNameEn: data.item,
+          itemNameGu: data.item,
+          quantity: isLend ? -data.quantity : data.quantity,
+          unit: data.unit
+        }
+      ],
+      totalQuantity: isLend ? -data.quantity : data.quantity,
+      unit: data.unit,
+      authorizedBy: 'Shardaben Shah (Supervisor Approval #8491)',
+      noteEn: `Peer-to-peer inter-AWC nutrition balancing transfer recorded.`,
+      noteGu: `આંગણવાડીઓ વચ્ચે અરસપરસ પોષણ સંતુલન આપ-લે નોંધાયેલ.`,
+      synced: isOnline
+    };
+
+    await addRecentTransaction(newTxn);
+
     // 3. Push to Firebase
     await pushFirebaseData('transfers', newTransferRecord, isOnline);
   };
@@ -689,6 +1006,19 @@ export default function App() {
                   inventory={inventory}
                   onUpdateInventory={handleUpdateInventory}
                   claimsCount={expenseClaims.length}
+                  isSyncing={isSyncing}
+                  pendingChangesCount={pendingQueueCount}
+                  syncNotice={syncNotice}
+                  onSyncNow={handleSyncNow}
+                  transactions={transactions}
+                  onAddTestPendingItem={() => {
+                    queueOfflineSync('awc_awvad04/test_pending', {
+                      action: 'Offline Stock Verification',
+                      note: 'Pending cloud update',
+                      awc: '04-Vadtal',
+                      time: new Date().toLocaleTimeString()
+                    });
+                  }}
                 />
               )}
 
@@ -727,7 +1057,9 @@ export default function App() {
                   onBack={() => setCurrentScreen('home')}
                   lang={lang}
                   inventory={inventory}
-                  onRefresh={() => {}}
+                  transactions={transactions}
+                  onRefresh={handleRefreshTransactions}
+                  isOnline={isOnline}
                 />
               )}
 
