@@ -26,6 +26,20 @@
     <!-- Firebase v10 Compat SDK for Realtime Database Synchronization -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+    <!-- Suppress harmless Vite HMR WebSocket closed errors in Cloud Run / iframe environment -->
+    <script>
+      window.addEventListener('unhandledrejection', function (e) {
+        if (e && e.reason && (typeof e.reason === 'string' ? e.reason.includes('WebSocket') : e.reason.message?.includes('WebSocket') || e.reason.stack?.includes('@vite/client'))) {
+          e.preventDefault();
+        }
+      });
+      window.addEventListener('error', function (e) {
+        if (e && (e.message?.includes('WebSocket') || e.filename?.includes('@vite/client'))) {
+          e.preventDefault();
+        }
+      });
+    </script>
   </head>
   <body class="bg-slate-100 font-sans antialiased selection:bg-emerald-200 selection:text-emerald-900">
     <div id="root"></div>

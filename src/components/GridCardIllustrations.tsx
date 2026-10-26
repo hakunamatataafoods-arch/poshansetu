@@ -488,3 +488,72 @@ export const BillUploadIllustration: React.FC<{ className?: string }> = ({ class
     </g>
   </svg>
 );
+
+export const StudentActivitiesIllustration: React.FC<{ className?: string }> = ({ className = 'w-full h-full' }) => (
+  <svg viewBox="0 0 160 130" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    {/* Ground Shadow */}
+    <ellipse cx="80" cy="116" rx="60" ry="7" fill="#E2E8F0" />
+
+    {/* Sun / Active Halo in background */}
+    <circle cx="80" cy="46" r="28" fill="#FEF3C7" opacity="0.6" />
+    <path d="M80 12V6M80 86V80M46 46H40M120 46H114M56 22L52 18M108 74L104 70M108 22L112 18M56 74L52 70" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+
+    {/* Educational Blackboard / Alphabet Book on the left */}
+    <g id="learning-board">
+      <rect x="20" y="46" width="36" height="48" rx="4" fill="#047857" stroke="#065F46" strokeWidth="2" />
+      <rect x="23" y="49" width="30" height="42" rx="2" fill="#064E3B" />
+      {/* Gujarati Letters & Numbers: ક, ખ, ૧, ૨ */}
+      <text x="27" y="64" fill="#FDE047" fontSize="11" fontWeight="bold" fontFamily="sans-serif">ક</text>
+      <text x="39" y="64" fill="#6EE7B7" fontSize="11" fontWeight="bold" fontFamily="sans-serif">ખ</text>
+      <text x="27" y="80" fill="#93C5FD" fontSize="10" fontWeight="bold" fontFamily="sans-serif">૧</text>
+      <text x="39" y="80" fill="#FCA5A5" fontSize="10" fontWeight="bold" fontFamily="sans-serif">૨</text>
+      {/* Small Star */}
+      <circle cx="46" cy="85" r="1.5" fill="#FDE047" />
+    </g>
+
+    {/* Active Child Jumping / Doing Movement Exercise in Center */}
+    <g id="active-child">
+      {/* Child Head & Smile */}
+      <circle cx="82" cy="38" r="9.5" fill="#FCD34D" />
+      {/* Hair */}
+      <path d="M74 36C74 30 78 28 82 28C86 28 90 30 90 36H74Z" fill="#1E293B" />
+      {/* Eyes and Smile */}
+      <circle cx="79.5" cy="37" r="1.2" fill="#1E293B" />
+      <circle cx="84.5" cy="37" r="1.2" fill="#1E293B" />
+      <path d="M79 41C80.5 43 83.5 43 85 41" stroke="#B45309" strokeWidth="1.2" strokeLinecap="round" />
+
+      {/* Raised Arms - Celebratory / Stretching Pose */}
+      <path d="M72 58L64 42L68 40L75 52Z" fill="#EA580C" />
+      <circle cx="64" cy="40" r="3" fill="#FCD34D" />
+      <path d="M92 58L100 42L96 40L89 52Z" fill="#EA580C" />
+      <circle cx="100" cy="40" r="3" fill="#FCD34D" />
+
+      {/* Vibrant Orange Sports T-Shirt */}
+      <path d="M73 52C73 49 76 47 82 47C88 47 91 49 91 52L89 74H75L73 52Z" fill="#F97316" />
+
+      {/* Active Movement Shorts / Pants */}
+      <path d="M75 74L71 94H78L81 80L84 94H91L89 74Z" fill="#2563EB" />
+      {/* Running Shoes */}
+      <ellipse cx="74" cy="95" rx="5" ry="2.5" fill="#15803D" />
+      <ellipse cx="88" cy="95" rx="5" ry="2.5" fill="#15803D" />
+    </g>
+
+    {/* Activity Ball / Sports Equipment on the right */}
+    <g id="play-ball">
+      <circle cx="120" cy="78" r="14" fill="#3B82F6" stroke="#1D4ED8" strokeWidth="1.5" />
+      <path d="M120 64C124 70 124 86 120 92" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" />
+      <path d="M110 74C118 76 122 76 130 74" stroke="#FDE047" strokeWidth="2" strokeLinecap="round" />
+      <path d="M110 82C118 80 122 80 130 82" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" />
+    </g>
+
+    {/* Camera Snapshot Badge for Activity Photos */}
+    <g id="camera-photo-badge">
+      <circle cx="128" cy="34" r="13" fill="#10B981" stroke="#FFFFFF" strokeWidth="2" />
+      <rect x="120" y="29" width="16" height="11" rx="2" fill="#FFFFFF" />
+      <path d="M125 29L126 27H130L131 29H125Z" fill="#FFFFFF" />
+      <circle cx="128" cy="34.5" r="3" fill="#10B981" />
+      <circle cx="129" cy="33.5" r="1" fill="#FFFFFF" />
+    </g>
+  </svg>
+);
+

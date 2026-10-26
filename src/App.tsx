@@ -21,6 +21,7 @@ import { MealPhotoScreen } from './screens/MealPhotoScreen';
 import { SmartRationScreen } from './screens/SmartRationScreen';
 import { DownloadReportScreen } from './screens/DownloadReportScreen';
 import { BillUploadScreen } from './screens/BillUploadScreen';
+import { StudentActivitiesScreen } from './screens/StudentActivitiesScreen';
 import { INITIAL_EXPENSE_CLAIMS } from './data/initialExpenseClaims';
 
 import {
@@ -1171,6 +1172,14 @@ export default function App() {
                   transfers={transfers}
                   students={students}
                   claims={expenseClaims}
+                />
+              )}
+
+              {currentScreen === 'student-activities' && (
+                <StudentActivitiesScreen
+                  onBack={() => setCurrentScreen('home')}
+                  lang={lang}
+                  isOnline={isOnline}
                 />
               )}
             </>

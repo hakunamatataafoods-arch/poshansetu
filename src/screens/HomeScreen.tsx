@@ -24,7 +24,8 @@ import {
   MealPhotoIllustration,
   SmartRationIllustration,
   DownloadReportIllustration,
-  BillUploadIllustration
+  BillUploadIllustration,
+  StudentActivitiesIllustration
 } from '../components/GridCardIllustrations';
 import { InventoryItem, Language } from '../types';
 import { translations } from '../data/translations';
@@ -159,6 +160,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       bg: 'bg-[#EAF7EE]',
       border: 'border-emerald-100/70',
       screen: 'bill-reimbursement'
+    },
+    {
+      id: 'student-activities',
+      title: t.studentActivities,
+      illustration: StudentActivitiesIllustration,
+      bg: 'bg-[#FFF7ED]',
+      border: 'border-orange-100/70',
+      screen: 'student-activities'
     }
   ];
 
@@ -351,18 +360,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         onUpdateInventory={onUpdateInventory}
       />
 
-      {/* 3. Illustrated Grid (All 10 dashboard icon cards in matching style, rounded-3xl, and aspect ratio) */}
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-3 pt-0.5">
+      {/* 3. Illustrated Grid (All 11 dashboard icon cards in matching style, rounded-3xl, and aspect ratio) */}
+      <div className="grid grid-cols-6 gap-2.5 sm:gap-3 pt-0.5">
         {gridCards.map((card, idx) => {
           const Illustration = card.illustration;
+          const colClass =
+            idx === 9
+              ? 'col-span-3 sm:col-span-2 sm:col-start-2'
+              : idx === 10
+              ? 'col-span-3 sm:col-span-2 sm:col-start-4'
+              : 'col-span-2';
 
           return (
             <button
               key={card.id}
               onClick={() => onNavigate(card.screen)}
-              className={`${card.bg} ${card.border} border rounded-3xl p-2 sm:p-2.5 flex flex-col items-center justify-between text-center transition-all duration-200 active:scale-[0.97] hover:shadow-md shadow-2xs aspect-[4/5.2] cursor-pointer group ${
-                idx === 9 ? 'col-start-2' : ''
-              }`}
+              className={`${card.bg} ${card.border} ${colClass} border rounded-3xl p-2 sm:p-2.5 flex flex-col items-center justify-between text-center transition-all duration-200 active:scale-[0.97] hover:shadow-md shadow-2xs aspect-[4/5.2] cursor-pointer group`}
             >
               {/* Illustration Area */}
               <div className="w-full flex-1 flex items-center justify-center transition-transform group-hover:scale-105 duration-200 py-1">
