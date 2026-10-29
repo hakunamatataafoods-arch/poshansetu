@@ -557,3 +557,76 @@ export const StudentActivitiesIllustration: React.FC<{ className?: string }> = (
   </svg>
 );
 
+export const BeneficiaryRegistryIllustration: React.FC<{ className?: string }> = ({ className = 'w-full h-full' }) => (
+  <svg viewBox="0 0 160 130" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    {/* Ground Shadow */}
+    <ellipse cx="80" cy="116" rx="60" ry="7" fill="#E2E8F0" />
+
+    {/* Soft Aura / Protection Sun in background */}
+    <circle cx="80" cy="52" r="34" fill="#FEF3C7" opacity="0.6" />
+
+    {/* Mother Holding Child (Anganwadi Beneficiary Motif) */}
+    <g id="mother-and-child">
+      {/* Mother Body & Sari */}
+      <path
+        d="M48 114C46 95 50 68 62 58C68 53 78 52 86 58C98 68 102 95 100 114H48Z"
+        fill="#047857"
+      />
+      {/* Mother Pallu / Sari drape */}
+      <path
+        d="M54 74C62 66 74 62 88 68L84 114H70L62 86L54 114H48L54 74Z"
+        fill="#059669"
+      />
+
+      {/* Mother Head */}
+      <circle cx="74" cy="38" r="10" fill="#FCD34D" />
+      {/* Mother Hair / Bun */}
+      <path d="M64 36C64 28 72 26 78 26C84 26 86 30 86 36H64Z" fill="#1E293B" />
+      <circle cx="86" cy="34" r="4.5" fill="#1E293B" />
+      {/* Bindi */}
+      <circle cx="72" cy="36" r="1" fill="#DC2626" />
+      {/* Gentle Smile */}
+      <path d="M72 42C74 43.5 76 43.5 78 42" stroke="#B45309" strokeWidth="1.2" strokeLinecap="round" />
+
+      {/* Child in Arms */}
+      <circle cx="92" cy="62" r="7.5" fill="#FCD34D" />
+      <path d="M86 60C86 54 92 52 96 52C99 52 100 55 100 60H86Z" fill="#1E293B" />
+      <circle cx="90.5" cy="62" r="1" fill="#1E293B" />
+      <circle cx="94.5" cy="62" r="1" fill="#1E293B" />
+      <path d="M91.5 65C92.5 66 94 66 95 65" stroke="#B45309" strokeWidth="1" strokeLinecap="round" />
+      {/* Child Swaddle / Clothes */}
+      <path d="M84 70C84 66 90 64 96 66L102 88C96 90 88 88 84 84L84 70Z" fill="#F97316" />
+    </g>
+
+    {/* Mamata Health Card / Digital Beneficiary Card on the left */}
+    <g id="id-card" transform="rotate(-6 32 60)">
+      <rect x="18" y="44" width="36" height="48" rx="4" fill="#FFFFFF" stroke="#10B981" strokeWidth="2" />
+      <rect x="22" y="48" width="28" height="8" rx="2" fill="#DCFCE7" />
+      <line x1="25" y1="52" x2="43" y2="52" stroke="#15803D" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Photo cutout */}
+      <rect x="23" y="60" width="10" height="12" rx="1.5" fill="#E2E8F0" />
+      <circle cx="28" cy="64" r="2.5" fill="#94A3B8" />
+      {/* Text lines */}
+      <line x1="36" y1="62" x2="48" y2="62" stroke="#64748B" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="36" y1="67" x2="46" y2="67" stroke="#94A3B8" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="23" y1="78" x2="48" y2="78" stroke="#CBD5E1" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="23" y1="83" x2="42" y2="83" stroke="#CBD5E1" strokeWidth="1.2" strokeLinecap="round" />
+      {/* Verified Tick */}
+      <circle cx="44" cy="84" r="4.5" fill="#10B981" />
+      <path d="M42 84L43.5 85.5L46.5 82.5" stroke="#FFFFFF" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </g>
+
+    {/* Green Health Plus / Protection Symbol badge on right */}
+    <g id="health-badge">
+      <circle cx="126" cy="46" r="16" fill="#F0FDF4" stroke="#16A34A" strokeWidth="2" />
+      {/* Plus Symbol */}
+      <rect x="123" y="38" width="6" height="16" rx="2" fill="#16A34A" />
+      <rect x="118" y="43" width="16" height="6" rx="2" fill="#16A34A" />
+      {/* Star sparkles */}
+      <circle cx="138" cy="34" r="2" fill="#F59E0B" />
+      <circle cx="112" cy="34" r="1.5" fill="#F59E0B" />
+    </g>
+  </svg>
+);
+
+

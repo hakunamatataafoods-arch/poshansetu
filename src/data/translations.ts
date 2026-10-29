@@ -54,6 +54,8 @@ export const translations = {
     billReimbursementSingle: "Bill Upload & Reimbursement",
     studentActivities: "Student Activities\n& Syllabus",
     studentActivitiesSingle: "Student Activities & Classroom Syllabus",
+    beneficiaryRegistry: "Beneficiary\nRegistry",
+    beneficiaryRegistrySingle: "Beneficiary Registry",
     workerManual: "Worker Manual (PDF)",
 
     // Meal Usage Screen
@@ -181,6 +183,8 @@ export const translations = {
     billReimbursementSingle: "બિલ અપલોડ અને ભરપાઈ",
     studentActivities: "બાળ પ્રવૃત્તિ &\nઅભ્યાસક્રમ",
     studentActivitiesSingle: "બાળ પ્રવૃત્તિ અને અભ્યાસક્રમ",
+    beneficiaryRegistry: "લાભાર્થી\nનોંધણી",
+    beneficiaryRegistrySingle: "લાભાર્થી નોંધણી",
     workerManual: "કાર્યકર માર્ગદર્શિકા (PDF)",
 
     // Meal Usage Screen
