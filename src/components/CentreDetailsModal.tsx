@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Language } from '../types';
 import { REGISTERED_BENEFICIARIES, RegisteredBeneficiary } from '../data/beneficiaries';
+import { getRegisteredBeneficiaries } from '../services/beneficiaryRegistry';
 
 export type BeneficiaryCategory = 'overview' | 'children' | 'infant' | 'pregnant';
 
@@ -50,9 +51,35 @@ export const CentreDetailsModal: React.FC<CentreDetailsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const childrenList = REGISTERED_BENEFICIARIES.filter((b) => b.category === 'children');
-  const infantList = REGISTERED_BENEFICIARIES.filter((b) => b.category === 'infant');
-  const pregnantList = REGISTERED_BENEFICIARIES.filter((b) => b.category === 'pregnant');
+  // Include any newly registered beneficiaries from localStorage
+  const customStorage = getRegisteredBeneficiaries().filter((b) => b.isCustom);
+  const customMapped: RegisteredBeneficiary[] = customStorage.map((b) => ({
+    id: b.id,
+    nameEn: b.nameEn,
+    nameGu: b.nameGu,
+    ageEn: b.ageEn || 'N/A',
+    ageGu: b.ageGu || 'N/A',
+    addressEn: b.addressEn || 'AWC 04 Vadtal',
+    addressGu: b.addressGu || 'આંગણવાડી ૦૪ વડતાલ',
+    category:
+      b.categoryType === 'pregnant' || b.categoryType === 'lactating'
+        ? 'pregnant'
+        : b.categoryType === 'infant'
+        ? 'infant'
+        : 'children',
+    parentOrSpouseEn: b.parentOrSpouseEn || '',
+    parentOrSpouseGu: b.parentOrSpouseGu || '',
+    mcpCardNo: b.mcpCardNo,
+    phone: b.phone,
+    subCategoryEn: b.categoryEn,
+    subCategoryGu: b.categoryGu
+  }));
+
+  const allBeneficiaries = [...customMapped, ...REGISTERED_BENEFICIARIES];
+
+  const childrenList = allBeneficiaries.filter((b) => b.category === 'children');
+  const infantList = allBeneficiaries.filter((b) => b.category === 'infant');
+  const pregnantList = allBeneficiaries.filter((b) => b.category === 'pregnant');
 
   const currentList =
     selectedCategory === 'children'

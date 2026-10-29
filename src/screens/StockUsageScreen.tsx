@@ -17,7 +17,12 @@ import {
   Info,
   Trash2,
   PlusCircle,
-  Search
+  Search,
+  UserPlus,
+  Users,
+  Phone,
+  MapPin,
+  Sparkles
 } from 'lucide-react';
 import { PoshanSetuLogo } from '../components/PoshanSetuLogo';
 import { Language, InventoryItem } from '../types';
@@ -27,6 +32,11 @@ import {
   playTransactionErrorSound,
   playPopClickSound
 } from '../utils/audioEffects';
+import {
+  getRegisteredBeneficiaries,
+  saveNewBeneficiary,
+  BeneficiaryItem
+} from '../services/beneficiaryRegistry';
 
 interface StockUsageScreenProps {
   onBack: () => void;
@@ -75,18 +85,80 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
 }) => {
   const t = translations[lang];
 
-  const beneficiaries = [
-    { nameEn: 'Surbhi Rawat', nameGu: 'સુરભી રાવત', categoryEn: 'Lactating Mother (LM)', categoryGu: 'ધાત્રી માતા (LM)' },
-    { nameEn: 'Shreeya Dube', nameGu: 'શ્રીયા દુબે', categoryEn: 'Pregnant Woman (PW)', categoryGu: 'સગર્ભા માતા (PW)' },
-    { nameEn: 'Priti Arora', nameGu: 'પ્રીતિ અરોરા', categoryEn: 'Lactating Mother (LM)', categoryGu: 'ધાત્રી માતા (LM)' },
-    { nameEn: 'Aarav Patel', nameGu: 'આરવ પટેલ', categoryEn: 'Child (6m-3 yrs)', categoryGu: 'બાળક (૬માસ-૩ વર્ષ)' },
-    { nameEn: 'Kiranben Solanki', nameGu: 'કિરણબેન સોલંકી', categoryEn: 'Pregnant Woman (PW)', categoryGu: 'સગર્ભા માતા (PW)' }
-  ];
+  const [beneficiariesList, setBeneficiariesList] = useState<BeneficiaryItem[]>(() =>
+    getRegisteredBeneficiaries()
+  );
 
   const [selectedBeneficiary, setSelectedBeneficiary] = useState<string>('');
   const [photoUploaded, setPhotoUploaded] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<boolean>(false);
+
+  // Beneficiary registration modal & form states
+  const [showBeneficiaryModal, setShowBeneficiaryModal] = useState<boolean>(false);
+  const [newBenName, setNewBenName] = useState<string>('');
+  const [newBenCategory, setNewBenCategory] = useState<BeneficiaryItem['categoryType']>('pregnant');
+  const [newBenAge, setNewBenAge] = useState<string>('');
+  const [newBenPhone, setNewBenPhone] = useState<string>('');
+  const [newBenParentOrSpouse, setNewBenParentOrSpouse] = useState<string>('');
+  const [newBenMcpCard, setNewBenMcpCard] = useState<string>('');
+  const [newBenAddress, setNewBenAddress] = useState<string>('');
+  const [newBenError, setNewBenError] = useState<string>('');
+  const [beneficiaryToast, setBeneficiaryToast] = useState<string | null>(null);
+
+  // Helper to find currently selected beneficiary details
+  const selectedBeneObj = beneficiariesList.find(
+    (b) =>
+      b.nameEn === selectedBeneficiary ||
+      b.nameGu === selectedBeneficiary ||
+      (lang === 'gu' ? b.nameGu : b.nameEn) === selectedBeneficiary
+  );
+
+  const handleRegisterBeneficiary = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newBenName.trim()) {
+      setNewBenError(
+        lang === 'gu' ? 'કૃપા કરીને લાભાર્થીનું નામ દાખલ કરો' : 'Please enter beneficiary name'
+      );
+      return;
+    }
+
+    const saved = saveNewBeneficiary({
+      name: newBenName.trim(),
+      categoryType: newBenCategory,
+      age: newBenAge.trim() || undefined,
+      phone: newBenPhone.trim() || undefined,
+      parentOrSpouse: newBenParentOrSpouse.trim() || undefined,
+      mcpCardNo: newBenMcpCard.trim() || undefined,
+      address: newBenAddress.trim() || undefined
+    });
+
+    const refreshed = getRegisteredBeneficiaries();
+    setBeneficiariesList(refreshed);
+
+    const displayName = lang === 'gu' ? saved.nameGu : saved.nameEn;
+    setSelectedBeneficiary(displayName);
+
+    playPopClickSound();
+
+    // Reset form
+    setNewBenName('');
+    setNewBenCategory('pregnant');
+    setNewBenAge('');
+    setNewBenPhone('');
+    setNewBenParentOrSpouse('');
+    setNewBenMcpCard('');
+    setNewBenAddress('');
+    setNewBenError('');
+    setShowBeneficiaryModal(false);
+
+    setBeneficiaryToast(
+      lang === 'gu'
+        ? `નવો લાભાર્થી "${saved.nameGu}" સફળતાપૂર્વક નોંધાયો અને વિતરણ યાદીમાં પસંદ થયો!`
+        : `New beneficiary "${saved.nameEn}" successfully registered and selected for distribution!`
+    );
+    setTimeout(() => setBeneficiaryToast(null), 4500);
+  };
   const [lastDistributedSummary, setLastDistributedSummary] = useState<{
     beneficiary: string;
     category: string;
@@ -629,7 +701,12 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
     }
 
     setSubmitting(true);
-    const beneObj = beneficiaries.find((b) => b.nameEn === selectedBeneficiary || b.nameGu === selectedBeneficiary);
+    const beneObj = beneficiariesList.find(
+      (b) =>
+        b.nameEn === selectedBeneficiary ||
+        b.nameGu === selectedBeneficiary ||
+        (lang === 'gu' ? b.nameGu : b.nameEn) === selectedBeneficiary
+    );
     const category = beneObj ? (lang === 'gu' ? beneObj.categoryGu : beneObj.categoryEn) : 'General';
 
     // Construct base distribution map for inventory reduction
@@ -818,30 +895,152 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
             </span>
           </div>
 
-          {/* Beneficiary Name Row */}
-          <div className="flex items-center justify-between gap-2">
-            <label className="text-sm font-semibold text-slate-800 shrink-0">
-              {t.beneficiaryName}
-            </label>
-            <div className="relative flex-1 max-w-[210px]">
+          {/* Toast Notification when New Beneficiary Registered */}
+          {beneficiaryToast && (
+            <div className="p-3 bg-emerald-700 text-white rounded-2xl shadow-md flex items-center justify-between gap-2.5 text-xs font-bold animate-in slide-in-from-top duration-200">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-200 shrink-0" />
+                <span>{beneficiaryToast}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBeneficiaryToast(null)}
+                className="text-emerald-200 hover:text-white p-1"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Beneficiary Header & Selection */}
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-emerald-700 stroke-[2.2]" />
+                <label className="text-sm font-bold text-slate-800">
+                  {t.beneficiaryName}
+                </label>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                  {beneficiariesList.length}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewBenError('');
+                  setShowBeneficiaryModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EAF7EE] hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer active:scale-95"
+              >
+                <UserPlus className="w-3.5 h-3.5 text-emerald-700 stroke-[2.5]" />
+                <span>{lang === 'gu' ? '+ નવો લાભાર્થી' : '+ New Beneficiary'}</span>
+              </button>
+            </div>
+
+            {/* Select Dropdown */}
+            <div className="relative">
               <select
                 value={selectedBeneficiary}
                 onChange={(e) => setSelectedBeneficiary(e.target.value)}
-                className="w-full bg-white border border-slate-200 text-slate-900 font-semibold text-xs rounded-xl px-3 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-8 shadow-2xs"
+                className="w-full bg-white border border-slate-200 text-slate-900 font-semibold text-xs rounded-xl px-3.5 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-9 shadow-2xs"
               >
-                <option value="">{t.selectBeneficiary}</option>
-                {beneficiaries.map((b) => {
+                <option value="">
+                  {lang === 'gu'
+                    ? `-- લાભાર્થી પસંદ કરો (${beneficiariesList.length} ઉપલબ્ધ) --`
+                    : `-- Select Beneficiary (${beneficiariesList.length} available) --`}
+                </option>
+                {beneficiariesList.map((b) => {
                   const bName = lang === 'gu' ? b.nameGu : b.nameEn;
                   const bCat = lang === 'gu' ? b.categoryGu : b.categoryEn;
+                  const customTag = b.isCustom
+                    ? lang === 'gu'
+                      ? ' [✨ નવો]'
+                      : ' [✨ New]'
+                    : '';
                   return (
-                    <option key={b.nameEn} value={bName}>
-                      {bName} ({bCat})
+                    <option key={b.id} value={bName}>
+                      {bName} ({bCat}){customTag}
                     </option>
                   );
                 })}
               </select>
-              <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-3 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-slate-500 absolute right-3 top-3 pointer-events-none" />
             </div>
+
+            {/* Selected Beneficiary Quick Profile Card */}
+            {selectedBeneObj && (
+              <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl space-y-1.5 text-xs text-slate-700 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-slate-900 text-sm">
+                      {lang === 'gu' ? selectedBeneObj.nameGu : selectedBeneObj.nameEn}
+                    </span>
+                    {selectedBeneObj.isCustom && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-0.5">
+                        <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                        {lang === 'gu' ? 'નવા ઉમેરાયેલ' : 'New Registered'}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    {lang === 'gu' ? selectedBeneObj.categoryGu : selectedBeneObj.categoryEn}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] pt-1 border-t border-emerald-200/60">
+                  {(selectedBeneObj.ageGu || selectedBeneObj.ageEn) && (
+                    <div>
+                      <span className="text-slate-500 font-medium">
+                        {lang === 'gu' ? 'ઉંમર: ' : 'Age: '}
+                      </span>
+                      <span className="font-bold text-slate-800">
+                        {lang === 'gu' ? selectedBeneObj.ageGu : selectedBeneObj.ageEn}
+                      </span>
+                    </div>
+                  )}
+
+                  {(selectedBeneObj.parentOrSpouseGu || selectedBeneObj.parentOrSpouseEn) && (
+                    <div>
+                      <span className="text-slate-500 font-medium">
+                        {lang === 'gu' ? 'વાલી/પતિ: ' : 'Kin: '}
+                      </span>
+                      <span className="font-bold text-slate-800 truncate block">
+                        {lang === 'gu'
+                          ? selectedBeneObj.parentOrSpouseGu
+                          : selectedBeneObj.parentOrSpouseEn}
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedBeneObj.phone && (
+                    <div className="flex items-center gap-1">
+                      <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
+                      <span className="font-bold text-slate-800">{selectedBeneObj.phone}</span>
+                    </div>
+                  )}
+
+                  {selectedBeneObj.mcpCardNo && (
+                    <div>
+                      <span className="text-slate-500 font-medium">
+                        {lang === 'gu' ? 'મમતા કાર્ડ: ' : 'MCP: '}
+                      </span>
+                      <span className="font-bold text-slate-800 font-mono text-[10px]">
+                        {selectedBeneObj.mcpCardNo}
+                      </span>
+                    </div>
+                  )}
+
+                  {(selectedBeneObj.addressGu || selectedBeneObj.addressEn) && (
+                    <div className="col-span-2 flex items-center gap-1 text-[10.5px] text-slate-600 pt-0.5">
+                      <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                      <span className="truncate">
+                        {lang === 'gu' ? selectedBeneObj.addressGu : selectedBeneObj.addressEn}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Beneficiary Photo Row */}
@@ -1668,6 +1867,215 @@ export const StockUsageScreen: React.FC<StockUsageScreenProps> = ({
             >
               <span>{lang === 'gu' ? 'સમજાઈ ગયું (Understood)' : 'Understood, Got It'}</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* Modal: Register New Beneficiary */}
+      {/* ==================================================================== */}
+      {showBeneficiaryModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200 relative">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shadow-2xs">
+                  <UserPlus className="w-5 h-5 stroke-[2.2]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 leading-tight">
+                    {lang === 'gu' ? 'નવા લાભાર્થીની નોંધણી' : 'Register New Beneficiary'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {lang === 'gu'
+                      ? 'આંગણવાડી ૦૪ વડતાલ - વિતરણ રજીસ્ટર'
+                      : 'AWC 04 Vadtal - Distribution Registry'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBeneficiaryModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            </div>
+
+            {/* Error banner if any */}
+            {newBenError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{newBenError}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleRegisterBeneficiary} className="space-y-3.5">
+              {/* Full Name */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                  <span>
+                    {lang === 'gu' ? 'લાભાર્થીનું પૂરું નામ' : 'Beneficiary Full Name'}{' '}
+                    <span className="text-rose-500">*</span>
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={newBenName}
+                  onChange={(e) => {
+                    setNewBenName(e.target.value);
+                    if (newBenError) setNewBenError('');
+                  }}
+                  placeholder={
+                    lang === 'gu'
+                      ? 'દા.ત. કલ્પનાબેન સંજય સોલંકી'
+                      : 'e.g. Kalpanaben Sanjay Solanki'
+                  }
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  autoFocus
+                />
+              </div>
+
+              {/* Beneficiary Category */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-800">
+                  {lang === 'gu' ? 'લાભાર્થી શ્રેણી (Category)' : 'Beneficiary Category'}{' '}
+                  <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={newBenCategory}
+                  onChange={(e) =>
+                    setNewBenCategory(e.target.value as BeneficiaryItem['categoryType'])
+                  }
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="pregnant">
+                    {lang === 'gu' ? 'સગર્ભા માતા (PW - Pregnant Woman)' : 'Pregnant Woman (PW)'}
+                  </option>
+                  <option value="lactating">
+                    {lang === 'gu' ? 'ધાત્રી માતા (LM - Lactating Mother)' : 'Lactating Mother (LM)'}
+                  </option>
+                  <option value="infant">
+                    {lang === 'gu' ? 'બાળક / શિશુ (૬માસ-૩ વર્ષ - Bal Shakti)' : 'Child / Infant (6m-3 yrs)'}
+                  </option>
+                  <option value="children">
+                    {lang === 'gu' ? 'પૂર્વ પ્રાથમિક બાળક (૩-૬ વર્ષ)' : 'Pre-School Child (3-6 yrs)'}
+                  </option>
+                  <option value="adolescent">
+                    {lang === 'gu' ? 'કિશોરી (પૂર્ણા શક્તિ - Purna)' : 'Adolescent Girl (Purna)'}
+                  </option>
+                  <option value="other">
+                    {lang === 'gu' ? 'અન્ય પોષણ લાભાર્થી' : 'Other Beneficiary'}
+                  </option>
+                </select>
+              </div>
+
+              {/* Age & Phone Grid */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-800">
+                    {lang === 'gu' ? 'ઉંમર / મહિનો' : 'Age / Month'}
+                  </label>
+                  <input
+                    type="text"
+                    value={newBenAge}
+                    onChange={(e) => setNewBenAge(e.target.value)}
+                    placeholder={lang === 'gu' ? 'દા.ત. ૨૪ વર્ષ / ૮ માસ' : 'e.g. 24 Yrs / 8 Mos'}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-800">
+                    {lang === 'gu' ? 'મોબાઈલ નંબર' : 'Mobile Phone'}
+                  </label>
+                  <input
+                    type="tel"
+                    value={newBenPhone}
+                    onChange={(e) => setNewBenPhone(e.target.value)}
+                    placeholder="98251 XXXXX"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              {/* Parent or Husband Name */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-800">
+                  {lang === 'gu' ? 'પતિ અથવા વાલીનું નામ' : 'Husband or Parent Name'}
+                </label>
+                <input
+                  type="text"
+                  value={newBenParentOrSpouse}
+                  onChange={(e) => setNewBenParentOrSpouse(e.target.value)}
+                  placeholder={lang === 'gu' ? 'દા.ત. સંજયભાઈ સોલંકી' : 'e.g. Sanjaybhai Solanki'}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              {/* Mamata / MCP Card Number */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-800">
+                  {lang === 'gu' ? 'મમતા કાર્ડ નંબર (MCP Card)' : 'Mamata Card / MCP No.'}
+                </label>
+                <input
+                  type="text"
+                  value={newBenMcpCard}
+                  onChange={(e) => setNewBenMcpCard(e.target.value)}
+                  placeholder="MCP-GJ-2026-XXXX"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-semibold font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              {/* Address / Faliyu */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-800">
+                  {lang === 'gu' ? 'રહેઠાણનું સરનામું / ફળિયું' : 'Residential Address / Faliyu'}
+                </label>
+                <input
+                  type="text"
+                  value={newBenAddress}
+                  onChange={(e) => setNewBenAddress(e.target.value)}
+                  placeholder={
+                    lang === 'gu'
+                      ? 'દા.ત. મંદિર ફળિયું, પ્લોટ ૧૫, વડતાલ'
+                      : 'e.g. Mandir Faliyu, Plot 15, Vadtal'
+                  }
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              {/* Info Note */}
+              <div className="p-2.5 bg-emerald-50/80 rounded-xl border border-emerald-200/70 text-[10.5px] text-emerald-900 flex items-start gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+                <span>
+                  {lang === 'gu'
+                    ? 'આ લાભાર્થી તરત જ ડિસ્ટ્રિબ્યુશન યાદીમાં ઉમેરાશે અને રેશન વિતરણ માટે પસંદ થઈ જશે.'
+                    : 'This beneficiary will be instantly saved and selected for ration distribution.'}
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBeneficiaryModal(false)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  {lang === 'gu' ? 'રદ્દ કરો' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#15803D] hover:bg-[#166534] text-white font-bold text-xs rounded-xl transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>
+                    {lang === 'gu' ? 'નોંધણી સાચવો અને પસંદ કરો' : 'Register & Select'}
+                  </span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
